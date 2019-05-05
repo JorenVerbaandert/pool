@@ -9,6 +9,7 @@ const settings = {
   power: 40,
   drag: 0.975,
   ballR: 25 / 2,
+  minPower: 0.05,
 }
 
 let canvas = null;
@@ -373,7 +374,7 @@ function updateBall(ball) {
     if (ball.power) {
       ball.power = ball.power * settings.drag;
     
-      if (ball.power < 0.03) {
+      if (ball.power < settings.minPower) {
         ball.power = null;
       }
     }
