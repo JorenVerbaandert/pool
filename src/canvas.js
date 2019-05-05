@@ -6,8 +6,8 @@ window.vec2 = vec2;
 const height = 740;
 const width = 1140;
 const settings = {
-  power: 30,
-  drag: 0.98,
+  power: 40,
+  drag: 0.975,
   ballR: 25 / 2,
 }
 
@@ -16,7 +16,6 @@ let ctx = null;
 
 const table = {};
 let whiteBall = {};
-let blackBall = {};
 let balls = [];
 
 function setTable() {
@@ -36,7 +35,30 @@ function setTable() {
   table.drawInner = [inner.x, inner.y, inner.width, inner.height];
 }
 
+function createBall(color, number, col = 0, row = 0, half = false) {
+  const x = col * 27;
+  const y = row * 27;
+
+  const ball = {
+    position: vec2.fromValues(table.inner.x + 3 * (table.inner.width / 4) + x, table.inner.y + (table.inner.height / 2) + y),
+    get x() {
+      return this.position[0];
+    },
+    get y() {
+      return this.position[1];
+    },
+    color,
+    half,
+    number,
+  };
+
+  balls.push(ball);
+  return ball;
+}
+
 function createBalls() {
+
+  balls = [];
 
   whiteBall = {
     position: vec2.fromValues(table.inner.x + (table.inner.width / 4), table.inner.y + (table.inner.height / 2)),
@@ -48,25 +70,30 @@ function createBalls() {
     },
     color: "white",
   };
+  balls.push(whiteBall);
   
-  blackBall = {
-    position: vec2.fromValues(table.inner.x + (3 * (table.inner.width / 4)), table.inner.y + (table.inner.height / 2)),
-    get x() {
-      return this.position[0];
-    },
-    get y() {
-      return this.position[1];
-    },
-    color: "black",
-  };
+  createBall("black", 8);
+  createBall("yellow", 1, -2);
+  createBall("yellow", 9, -1, 0.5, true);
+  createBall("green", 14, -1, -0.5, true);
+  createBall("blue", 2, 0, -1);
+  createBall("green", 6, 0, 1);
+  createBall("orange", 13, 1, -1.5, true);
+  createBall("darkred", 15, 1, -0.5, true);
+  createBall("darkred", 7, 1, 0.5);
+  createBall("blue", 10, 1, 1.5, true);
 
-  balls = [whiteBall, blackBall];
+  createBall("orange", 5, 2, -2);
+  createBall("purple", 12, 2, -1, true);
+  createBall("purple", 4, 2, 0);
+  createBall("red", 11, 2, 1, true);
+  createBall("red", 3, 2, 2);
 }
 
 function setupCanvas() {
   ctx.font = "30px Verdana";
   setTable();
-  createBalls()
+  createBalls();
 }
 
 function drawBall(ball) {
@@ -78,11 +105,23 @@ function drawBall(ball) {
   ctx.arc(ball.x, ball.y, settings.ballR, 0, 2 * Math.PI);
   ctx.fillStyle = ball.color;
   ctx.fill();
+
+  if (ball.half) {
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, settings.ballR, .2 * Math.PI, .8 * Math.PI);
+    ctx.closePath();
+    ctx.fillStyle = "white";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, settings.ballR, 1.2 * Math.PI, 1.8 * Math.PI);
+    ctx.closePath();
+    ctx.fillStyle = "white";
+    ctx.fill();
+  }
 }
 
 function drawBalls() {
-  drawBall(whiteBall);
-  drawBall(blackBall);
+  balls.forEach(drawBall);
 }
 
 function drawTable() {
@@ -298,9 +337,10 @@ function checkCollisions(ball) {
   const ballPos = vec2.create();
 
   for (const otherBall of balls) {
-    if (otherBall.checked) {
-      continue;
-    }
+    // TODO uncomment if dynamic dynamic is fixed
+    // if (otherBall.checked) {
+    //   continue;
+    // }
     if (otherBall === ball) {
       continue;
     }
@@ -333,7 +373,7 @@ function updateBall(ball) {
     if (ball.power) {
       ball.power = ball.power * settings.drag;
     
-      if (ball.power < 0.01) {
+      if (ball.power < 0.03) {
         ball.power = null;
       }
     }
@@ -380,6 +420,7 @@ export default function Canvas() {
         height={ height }
         onClick={handleClick}
       />
+      <button onClick={setupCanvas}>reset!</button>
     </div>
   )
 }
