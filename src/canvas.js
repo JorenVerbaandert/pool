@@ -17,6 +17,7 @@ let ctx = null;
 const table = {};
 let whiteBall = {};
 let blackBall = {};
+let balls = [];
 
 function setTable() {
   const outer = {
@@ -58,6 +59,8 @@ function createBalls() {
     },
     color: "black",
   };
+
+  balls = [whiteBall, blackBall];
 }
 
 function setupCanvas() {
@@ -111,6 +114,9 @@ function drawFPS() {
 }
 
 function handleClick(event) {
+  if (balls.some(ball => ball.power)) {
+    return;
+  }
   const rect = canvas.getBoundingClientRect();
   const click = vec2.fromValues(event.clientX - rect.left, event.clientY - rect.top);
   const ball = vec2.fromValues(whiteBall.x, whiteBall.y);
@@ -122,13 +128,65 @@ function handleClick(event) {
   whiteBall.direction = direction;
 }
 
-function ballVSWall(ball, { x, x2, y, y2}) {
-  return {
-    x: ball[0] - settings.ballR < x,
-    x2: ball[0] + settings.ballR > x2,
-    y: ball[1] - settings.ballR < y,
-    y2: ball[1] + settings.ballR > y2,
-  };
+function ballVSWall(ball, wall) {
+  const newPos = vec2.scaleAndAdd(vec2.create(), ball.position, ball.direction, ball.remainingPower || ball.power);
+
+  if (newPos[0] - settings.ballR < wall.x) {
+    const N = vec2.fromValues(wall.x - ball.x + settings.ballR, 0);
+
+    const V = vec2.scale(vec2.create(), ball.direction, ball.power);
+
+    const a = N[0] / V[0];
+    
+    const coll = vec2.scale(vec2.create(), V, a);
+
+    ball.remainingPower = (1 - a) * ball.power;
+    ball.position = vec2.add(ball.position, ball.position, coll);
+    ball.direction = vec2.mul(ball.direction, ball.direction, [-1, 1]);
+    return true;
+  }
+  if (newPos[0] + settings.ballR > wall.x2) {
+    const N = vec2.fromValues(wall.x2 - ball.x - settings.ballR, 0);
+
+    const V = vec2.scale(vec2.create(), ball.direction, ball.power);
+
+    const a = N[0] / V[0];
+    
+    const coll = vec2.scale(vec2.create(), V, a);
+
+    ball.remainingPower = (1 - a) * ball.power;
+    ball.position = vec2.add(ball.position, ball.position, coll);
+    ball.direction = vec2.mul(ball.direction, ball.direction, [-1, 1]);
+    return true;
+  }
+  if (newPos[1] - settings.ballR < wall.y) {
+    const N = vec2.fromValues(0, wall.y - ball.y + settings.ballR);
+
+    const V = vec2.scale(vec2.create(), ball.direction, ball.power);
+
+    const a = N[1] / V[1];
+    
+    const coll = vec2.scale(vec2.create(), V, a);
+
+    ball.remainingPower = (1 - a) * ball.power;
+    ball.position = vec2.add(ball.position, ball.position, coll);
+    ball.direction = vec2.mul(ball.direction, ball.direction, [1, -1]);
+    return true;
+  }
+  if (newPos[1] + settings.ballR > wall.y2) {
+    const N = vec2.fromValues(0, wall.y2 - ball.y - settings.ballR);
+
+    const V = vec2.scale(vec2.create(), ball.direction, ball.power);
+
+    const a = N[1] / V[1];
+    
+    const coll = vec2.scale(vec2.create(), V, a);
+
+    ball.remainingPower = (1 - a) * ball.power;
+    ball.position = vec2.add(ball.position, ball.position, coll);
+    ball.direction = vec2.mul(ball.direction, ball.direction, [1, -1]);
+    return true;
+  }
 }
 
 function ballVSball(ballA, ballB) {
@@ -238,7 +296,6 @@ function checkCollisions(ball) {
   const dir = ball.direction;
   const power = ball.remainingPower || ball.power;
   const ballPos = vec2.create();
-  vec2.scaleAndAdd(ballPos, oldPos, dir, power);
 
   const ballCollision = ballVSball(ball, blackBall);
 
@@ -247,22 +304,10 @@ function checkCollisions(ball) {
     return checkCollisions(ball);
   }
   
-  const {x, y, x2, y2} = ballVSWall(ballPos, table.inner);
+  if (ballVSWall(ball, table.inner)) {
+    return checkCollisions(ball);
+  };
 
-  // TODO partial bounce
-
-  if (x) {
-    vec2.set(dir, dir[0] * -1, dir[1]);
-  }
-  if (x2) {
-    vec2.set(dir, dir[0] * -1, dir[1]);
-  }
-  if (y) {
-    vec2.set(dir, dir[0], dir[1] * -1);
-  }
-  if (y2) {
-    vec2.set(dir, dir[0], dir[1] * -1);
-  }
   vec2.scaleAndAdd(ballPos, oldPos, dir, power);
 
   ball.position = ballPos;
