@@ -297,11 +297,16 @@ function checkCollisions(ball) {
   const power = ball.remainingPower || ball.power;
   const ballPos = vec2.create();
 
-  const ballCollision = ballVSball(ball, blackBall);
-
-  if (ballCollision) {
-    console.log("COLLISION!");
-    return checkCollisions(ball);
+  for (const otherBall of balls) {
+    if (otherBall.checked) {
+      continue;
+    }
+    if (otherBall === ball) {
+      continue;
+    }
+    if (ballVSball(ball, otherBall)) {
+      return checkCollisions(ball);
+    }
   }
   
   if (ballVSWall(ball, table.inner)) {
@@ -319,6 +324,8 @@ function updateBall(ball) {
   if (ball.power) {
     checkCollisions(ball);
 
+    ball.checked = true;
+
     if (ball.remainingPower) {
       ball.remainingPower = 0;
     }
@@ -334,8 +341,8 @@ function updateBall(ball) {
 }
 
 function updateBalls() {
-  updateBall(whiteBall);
-  updateBall(blackBall);
+  balls.forEach(updateBall);
+  balls.forEach(ball => ball.checked = false);
 }
 
 function update() {
