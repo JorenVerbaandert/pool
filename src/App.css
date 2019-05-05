@@ -1,0 +1,10 @@
+.App {
+  text-align: center;
+}
+
+canvas {
+  display: block;
+  background-color: #ffffff;
+  margin-left: auto;
+  margin-right: auto;
+}
