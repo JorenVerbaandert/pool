@@ -19,9 +19,6 @@ import ball15 from "./images/Ball15.jpg";
 import ballCue from "./images/BallCue.jpg";
 import cloth from './images/cloth.jpg';
 import env from "./images/garage_1k.jpg";
-
-import SimplexNoise from "simplex-noise";
-const simplex = new SimplexNoise(Math.random);
 	
 window.vec2 = vec2;
 
@@ -48,26 +45,6 @@ let balls = [];
 
 let raycaster = new THREE.Raycaster();
 let mouse = new THREE.Vector2();
-
-function createNoise() {
-	let width = table.inner.width;
-	let height = table.inner.height;
-	let size = width * height;
-
-	let noiseData = new Uint8Array( 3 * size );
-
-	for (var i = 0; i < height; i++) {
-		for (var j = 0; j < width; j++){
-			let n = Math.floor(simplex.noise2D(i, j) * 256);
-
-			noiseData[ (j + i * width) * 3] = n;
-			noiseData[ (j + i * width) * 3 + 1] = n;
-			noiseData[ (j + i * width) * 3 + 2] = n;
-		}
-	}
-	return noiseData;
-}
-
 
 function setTable() {
   const outer = {
@@ -278,67 +255,10 @@ function createBalls() {
 }
 
 function setupCanvas() {
-  //ctx.font = "30px Verdana";
   setTable();
   createBalls();
   createScene();
 }
-
-// function drawBall(ball) {
-//   ctx.beginPath();
-//   ctx.arc(ball.x, ball.y, settings.ballR, 0, 2 * Math.PI);
-//   ctx.fillStyle = "black";
-//   ctx.stroke();
-//   ctx.beginPath();
-//   ctx.arc(ball.x, ball.y, settings.ballR, 0, 2 * Math.PI);
-//   ctx.fillStyle = ball.color;
-//   ctx.fill();
-
-//   if (ball.half) {
-//     ctx.beginPath();
-//     ctx.arc(ball.x, ball.y, settings.ballR, .2 * Math.PI, .8 * Math.PI);
-//     ctx.closePath();
-//     ctx.fillStyle = "white";
-//     ctx.fill();
-//     ctx.beginPath();
-//     ctx.arc(ball.x, ball.y, settings.ballR, 1.2 * Math.PI, 1.8 * Math.PI);
-//     ctx.closePath();
-//     ctx.fillStyle = "white";
-//     ctx.fill();
-//   }
-// }
-
-// function drawBalls() {
-//   balls.forEach(drawBall);
-// }
-
-// function drawTable() {
-//   ctx.beginPath();
-//   ctx.rect(...table.drawOuter);
-//   ctx.fillStyle = "peru";
-//   ctx.fill();
-
-//   ctx.beginPath();
-//   ctx.rect(...table.drawInner);
-//   ctx.fillStyle = "green";
-//   ctx.fill();
-// }
-
-// let times = [];
-// let fps;
-
-// function drawFPS() {
-
-//   const now = performance.now();
-//   while (times.length > 0 && times[0] <= now - 1000) {
-//     times.shift();
-//   }
-//   times.push(now);
-//   fps = times.length;
-
-//   ctx.fillStyle = "black";
-//   ctx.fillText("Fps: " + fps, 10, 50);
-// }
 
 function updateLine(origin, target) {
   let positions = line.geometry.attributes.position.array;
@@ -630,12 +550,8 @@ function updateBalls() {
 }
 
 function update() {
-//ctx.clearRect(0, 0, canvas.width, canvas.height);
   updateBalls();
 
-//   drawTable();
-//   drawBalls();
-//   drawFPS();
   renderScene();
   window.requestAnimationFrame(update);  
 }
@@ -648,8 +564,6 @@ export default function Canvas() {
       return;
     }
     canvas = canvasRef.current;
-    
-    //ctx = canvas.getContext('3d');
 
     setupCanvas();
 
