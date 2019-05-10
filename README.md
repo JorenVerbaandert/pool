@@ -1,3 +1,4 @@
+# simPOOL [![Build Status](https://ci.spamasaurus.com/api/badges/djpbessems/simPOOL/status.svg)](https://ci.spamasaurus.com/djpbessems/simPOOL)
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
