@@ -1,6 +1,28 @@
 import React, { useRef, useEffect } from "react";
 import * as vec2 from "gl-vec2";
+import * as THREE from 'three';
+import ball1 from "./images/Ball1.jpg";
+import ball2 from "./images/Ball2.jpg";
+import ball3 from "./images/Ball3.jpg";
+import ball4 from "./images/Ball4.jpg";
+import ball5 from "./images/Ball5.jpg";
+import ball6 from "./images/Ball6.jpg";
+import ball7 from "./images/Ball7.jpg";
+import ball8 from "./images/Ball8.jpg";
+import ball9 from "./images/Ball9.jpg";
+import ball10 from "./images/Ball10.jpg";
+import ball11 from "./images/Ball11.jpg";
+import ball12 from "./images/Ball12.jpg";
+import ball13 from "./images/Ball13.jpg";
+import ball14 from "./images/Ball14.jpg";
+import ball15 from "./images/Ball15.jpg";
+import ballCue from "./images/BallCue.jpg";
+import cloth from './images/cloth.jpg';
+import env from "./images/garage_1k.jpg";
 
+import SimplexNoise from "simplex-noise";
+const simplex = new SimplexNoise(Math.random);
+	
 window.vec2 = vec2;
 
 const height = 740;
@@ -10,14 +32,42 @@ const settings = {
   drag: 0.975,
   ballR: 25 / 2,
   minPower: 0.05,
-}
+};
 
 let canvas = null;
+let render = null;
 let ctx = null;
+let scene = null;
+let camera = null;
+let linegeometry = null;
+let line = null;
 
 const table = {};
 let whiteBall = {};
 let balls = [];
+
+let raycaster = new THREE.Raycaster();
+let mouse = new THREE.Vector2();
+
+function createNoise() {
+	let width = table.inner.width;
+	let height = table.inner.height;
+	let size = width * height;
+
+	let noiseData = new Uint8Array( 3 * size );
+
+	for (var i = 0; i < height; i++) {
+		for (var j = 0; j < width; j++){
+			let n = Math.floor(simplex.noise2D(i, j) * 256);
+
+			noiseData[ (j + i * width) * 3] = n;
+			noiseData[ (j + i * width) * 3 + 1] = n;
+			noiseData[ (j + i * width) * 3 + 2] = n;
+		}
+	}
+	return noiseData;
+}
+
 
 function setTable() {
   const outer = {
@@ -29,11 +79,147 @@ function setTable() {
   };
   inner.x2 = inner.x + inner.width;
   inner.y2 = inner.y + inner.height;
+  inner.middle = [(inner.x + inner.x2) /2, (inner.y + inner.y2) /2]
 
   table.outer = outer;
   table.drawOuter = [outer.x, outer.y, outer.width, outer.height];
   table.inner = inner;
   table.drawInner = [inner.x, inner.y, inner.width, inner.height];
+}
+
+function createScene() {
+  render = new THREE.WebGLRenderer({canvas: canvas, antialias: true});
+
+  render.setClearColor(0x000000, 1);
+  render.setSize(width, height);
+  render.shadowMapEnabled = true;
+  render.shadowMapSoft = true;
+
+  scene = new THREE.Scene();
+  var aspect = width / height;
+  
+  // Lights
+
+  var directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
+  directionalLight.position.set(1500,400,1000);
+  directionalLight.shadowCameraNear = 3;
+  directionalLight.shadowCameraFar = 10000;
+  directionalLight.shadowCameraFov = 45;
+  directionalLight.castShadow = true;
+  directionalLight.shadowCameraLeft = -600;
+  directionalLight.shadowCameraRight = 600;
+  directionalLight.shadowCameraTop = 600;
+  directionalLight.shadowCameraBottom = -600;
+  directionalLight.shadow.mapSize.width = 1024;
+  directionalLight.shadow.mapSize.height = 1024; 
+
+  scene.add( directionalLight );
+  
+  var light = new THREE.AmbientLight( 0x808080 );
+  scene.add( light );
+
+  // line
+
+  linegeometry = new THREE.BufferGeometry();
+
+  let lineMaterial = new THREE.LineBasicMaterial( { color: 0xff0000 } );
+  var positions = new Float32Array( 2 * 3 );
+  linegeometry.addAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
+  linegeometry.setDrawRange( 0, 2 );
+
+  line = new THREE.Line( linegeometry, lineMaterial );
+
+  updateLine(new THREE.Vector3( whiteBall.position[0], whiteBall.position[1], 1), 
+	  new THREE.Vector3( 0, 0, 1) 
+  );
+
+  linegeometry.attributes.position.needsUpdate = true;
+  scene.add( line );
+
+  // Camera
+
+  camera = new THREE.PerspectiveCamera(45, aspect, 1, 10000);
+  camera.position.set(table.inner.middle[0], table.inner.middle[1], 800);
+  camera.lookAt(new THREE.Vector3(table.inner.middle[0], table.inner.middle[1], 0));
+
+  scene.add(camera);
+
+  // Table
+
+  let clothTexture = new THREE.TextureLoader().load( cloth );
+  clothTexture.wrapS = THREE.RepeatWrapping;
+  clothTexture.wrapT = THREE.RepeatWrapping;
+  clothTexture.flipY = false;
+  clothTexture.minFilter = THREE.LinearFilter; 
+  clothTexture.magFilter = THREE.LinearFilter;
+  clothTexture.generateMipmaps = false;
+  clothTexture.repeat.x = 4;
+  clothTexture.repeat.y = 2;
+
+  // let noiseData = createNoise();
+  // let noiseTexture = new THREE.DataTexture( noiseData, table.inner.width, table.inner.height, THREE.RGBFormat );
+  // noiseTexture.needsUpdate = true;
+
+  const tableMaterial = new THREE.MeshLambertMaterial( {
+	  color: "green",
+	  map: clothTexture,
+	});
+
+  var geometry = new THREE.PlaneGeometry( table.inner.width, table.inner.height );
+  var tablePlane = new THREE.Mesh( geometry, tableMaterial );
+  tablePlane.position.set(...table.inner.middle, 0);
+  tablePlane.receiveShadow = true;
+  scene.add( tablePlane );
+
+  let specularShininess = Math.pow( 2, 8 );
+
+  let textureEquirec = new THREE.TextureLoader().load( env );
+  textureEquirec.mapping = THREE.EquirectangularReflectionMapping;
+  textureEquirec.magFilter = THREE.LinearFilter;
+  textureEquirec.minFilter = THREE.LinearMipMapLinearFilter;
+  textureEquirec.encoding = THREE.sRGBEncoding;
+  textureEquirec.format = THREE.RGBFormat;
+
+  const textures = [];
+  textures.push(new THREE.TextureLoader().load( ballCue ));
+  textures.push(new THREE.TextureLoader().load( ball1 ));
+  textures.push(new THREE.TextureLoader().load( ball2 ));
+  textures.push(new THREE.TextureLoader().load( ball3 ));
+  textures.push(new THREE.TextureLoader().load( ball4 ));
+  textures.push(new THREE.TextureLoader().load( ball5 ));
+  textures.push(new THREE.TextureLoader().load( ball6 ));
+  textures.push(new THREE.TextureLoader().load( ball7 ));
+  textures.push(new THREE.TextureLoader().load( ball8 ));
+  textures.push(new THREE.TextureLoader().load( ball9 ));
+  textures.push(new THREE.TextureLoader().load( ball10 ));
+  textures.push(new THREE.TextureLoader().load( ball11 ));
+  textures.push(new THREE.TextureLoader().load( ball12 ));
+  textures.push(new THREE.TextureLoader().load( ball13 ));
+  textures.push(new THREE.TextureLoader().load( ball14 ));
+  textures.push(new THREE.TextureLoader().load( ball15 ));
+
+  balls.map((ball) => {
+    let geometry = new THREE.SphereGeometry( settings.ballR, 32, 16 );
+
+    let material = new THREE.MeshPhongMaterial( {
+        specular: "white",
+        reflectivity: 0.25,
+        shininess: specularShininess,
+        map: textures[ball.number],
+		envMap: textureEquirec,
+		combine: THREE.AddOperation
+    } );
+
+    let sphere = new THREE.Mesh( geometry, material );
+    sphere.position.set(ball.x, ball.y, settings.ballR);
+    sphere.castShadow = true;
+    sphere.receiveShadow = true;
+    scene.add(sphere);
+
+    ball.sphere = sphere;
+    return sphere;
+  });
+
 }
 
 function createBall(color, number, col = 0, row = 0, half = false) {
@@ -92,73 +278,118 @@ function createBalls() {
 }
 
 function setupCanvas() {
-  ctx.font = "30px Verdana";
+  //ctx.font = "30px Verdana";
   setTable();
   createBalls();
+  createScene();
 }
 
-function drawBall(ball) {
-  ctx.beginPath();
-  ctx.arc(ball.x, ball.y, settings.ballR, 0, 2 * Math.PI);
-  ctx.fillStyle = "black";
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(ball.x, ball.y, settings.ballR, 0, 2 * Math.PI);
-  ctx.fillStyle = ball.color;
-  ctx.fill();
+// function drawBall(ball) {
+//   ctx.beginPath();
+//   ctx.arc(ball.x, ball.y, settings.ballR, 0, 2 * Math.PI);
+//   ctx.fillStyle = "black";
+//   ctx.stroke();
+//   ctx.beginPath();
+//   ctx.arc(ball.x, ball.y, settings.ballR, 0, 2 * Math.PI);
+//   ctx.fillStyle = ball.color;
+//   ctx.fill();
 
-  if (ball.half) {
-    ctx.beginPath();
-    ctx.arc(ball.x, ball.y, settings.ballR, .2 * Math.PI, .8 * Math.PI);
-    ctx.closePath();
-    ctx.fillStyle = "white";
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(ball.x, ball.y, settings.ballR, 1.2 * Math.PI, 1.8 * Math.PI);
-    ctx.closePath();
-    ctx.fillStyle = "white";
-    ctx.fill();
+//   if (ball.half) {
+//     ctx.beginPath();
+//     ctx.arc(ball.x, ball.y, settings.ballR, .2 * Math.PI, .8 * Math.PI);
+//     ctx.closePath();
+//     ctx.fillStyle = "white";
+//     ctx.fill();
+//     ctx.beginPath();
+//     ctx.arc(ball.x, ball.y, settings.ballR, 1.2 * Math.PI, 1.8 * Math.PI);
+//     ctx.closePath();
+//     ctx.fillStyle = "white";
+//     ctx.fill();
+//   }
+// }
+
+// function drawBalls() {
+//   balls.forEach(drawBall);
+// }
+
+// function drawTable() {
+//   ctx.beginPath();
+//   ctx.rect(...table.drawOuter);
+//   ctx.fillStyle = "peru";
+//   ctx.fill();
+
+//   ctx.beginPath();
+//   ctx.rect(...table.drawInner);
+//   ctx.fillStyle = "green";
+//   ctx.fill();
+// }
+
+// let times = [];
+// let fps;
+
+// function drawFPS() {
+
+//   const now = performance.now();
+//   while (times.length > 0 && times[0] <= now - 1000) {
+//     times.shift();
+//   }
+//   times.push(now);
+//   fps = times.length;
+
+//   ctx.fillStyle = "black";
+//   ctx.fillText("Fps: " + fps, 10, 50);
+// }
+
+function updateLine(origin, target) {
+  let positions = line.geometry.attributes.position.array;
+  positions[0] = origin.x;
+  positions[1] = origin.y;
+  positions[2] = settings.ballR;
+  positions[3] = target.x;
+  positions[4] = target.y;
+  positions[5] = settings.ballR;
+  line.geometry.attributes.position.needsUpdate = true; 
+}
+
+function updatemouse(event) {
+  if (!canvas) {
+    return;
   }
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = ( (event.clientX - rect.x) / rect.width) * 2 - 1;
+  mouse.y = - ( (event.clientY - rect.y) / rect.height) * 2 + 1;
 }
 
-function drawBalls() {
-  balls.forEach(drawBall);
-}
+function handleMove(event) {
+  updatemouse(event);
 
-function drawTable() {
-  ctx.beginPath();
-  ctx.rect(...table.drawOuter);
-  ctx.fillStyle = "peru";
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.rect(...table.drawInner);
-  ctx.fillStyle = "green";
-  ctx.fill();
-}
-
-let times = [];
-let fps;
-
-function drawFPS() {
-
-  const now = performance.now();
-  while (times.length > 0 && times[0] <= now - 1000) {
-    times.shift();
+  if (!scene) {
+    return;
   }
-  times.push(now);
-  fps = times.length;
+  
+  raycaster.setFromCamera( mouse, camera );
 
-  ctx.fillStyle = "black";
-  ctx.fillText("Fps: " + fps, 10, 50);
+  // calculate objects intersecting the picking ray 
+  var intersects = raycaster.intersectObjects( scene.children );
+
+  if (intersects[0]) {
+  	updateLine(new THREE.Vector3(intersects[0].point.x, intersects[0].point.y, settings.ballR), 
+	  new THREE.Vector3( whiteBall.position[0], whiteBall.position[1], settings.ballR));
+  }
 }
 
 function handleClick(event) {
   if (balls.some(ball => ball.power)) {
     return;
   }
-  const rect = canvas.getBoundingClientRect();
-  const click = vec2.fromValues(event.clientX - rect.left, event.clientY - rect.top);
+  
+  raycaster.setFromCamera( mouse, camera );
+
+  // calculate objects intersecting the picking ray 
+  var intersects = raycaster.intersectObjects( scene.children );
+
+  const click = vec2.fromValues(intersects[0].point.x, intersects[0].point.y);
+  
   const ball = vec2.fromValues(whiteBall.x, whiteBall.y);
 
   const direction = vec2.sub(vec2.create(), ball, click);
@@ -378,7 +609,19 @@ function updateBall(ball) {
         ball.power = null;
       }
     }
+    let normalVectorFloor = new THREE.Vector3(0,0,-1);
+    let axisOfRotation = new THREE.Vector3(ball.direction[0], ball.direction[1], 0).normalize().cross(normalVectorFloor);
+
+    //let quaternion = new THREE.Quaternion().setFromAxisAngle( axisOfRotation,  );
+
+    ball.sphere.rotateOnAxis(axisOfRotation, 2*Math.PI * 1/60);
   }
+  
+  ball.sphere.position.set(ball.x, ball.y, settings.ballR);
+}
+
+function renderScene() {
+    render.render(scene, camera);
 }
 
 function updateBalls() {
@@ -387,15 +630,14 @@ function updateBalls() {
 }
 
 function update() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+//ctx.clearRect(0, 0, canvas.width, canvas.height);
   updateBalls();
 
-  drawTable();
-  drawBalls();
-  drawFPS();
-
-  window.requestAnimationFrame(update);
+//   drawTable();
+//   drawBalls();
+//   drawFPS();
+  renderScene();
+  window.requestAnimationFrame(update);  
 }
 
 export default function Canvas() {
@@ -406,7 +648,8 @@ export default function Canvas() {
       return;
     }
     canvas = canvasRef.current;
-    ctx = canvas.getContext('2d');
+    
+    //ctx = canvas.getContext('3d');
 
     setupCanvas();
 
@@ -420,6 +663,7 @@ export default function Canvas() {
         width={ width }
         height={ height }
         onClick={handleClick}
+        onMouseMove={handleMove}
       />
       <button onClick={setupCanvas}>reset!</button>
     </div>
