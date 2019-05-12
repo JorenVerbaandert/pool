@@ -84,6 +84,17 @@ function setTable() {
   table.drawInner = [inner.x, inner.y, inner.width, inner.height];
 }
 
+function updateLine(origin, target) {
+  const positions = line.geometry.attributes.position.array;
+  positions[0] = origin.x;
+  positions[1] = origin.y;
+  positions[2] = settings.ballR;
+  positions[3] = target.x;
+  positions[4] = target.y;
+  positions[5] = settings.ballR;
+  line.geometry.attributes.position.needsUpdate = true;
+}
+
 function createScene() {
   render = new THREE.WebGLRenderer({ canvas, antialias: true });
 
@@ -125,6 +136,12 @@ function createScene() {
   linegeometry.setDrawRange(0, 2);
 
   line = new THREE.Line(linegeometry, lineMaterial);
+
+  updateLine(
+    new THREE.Vector3(whiteBall.position[0], whiteBall.position[1], 1),
+    new THREE.Vector3(0, 0, 1),
+  );
+
   scene.add(line);
 
   // Camera
@@ -158,6 +175,8 @@ function createScene() {
   tablePlane.receiveShadow = true;
   scene.add(tablePlane);
 
+  scene.add(new THREE.AxesHelper(5));
+
   const specularShininess = 2 ** 8;
 
   const textureEquirec = new THREE.TextureLoader().load(env);
@@ -167,14 +186,14 @@ function createScene() {
   textureEquirec.encoding = THREE.sRGBEncoding;
   textureEquirec.format = THREE.RGBFormat;
 
-  balls.map((ball, index) => {
+  balls.map((ball) => {
     const ballGeometry = new THREE.SphereGeometry(settings.ballR, 32, 16);
 
     const material = new THREE.MeshPhongMaterial({
       specular: 'white',
       reflectivity: 0.25,
       shininess: specularShininess,
-      map: new THREE.TextureLoader().load(textures[index]),
+      map: new THREE.TextureLoader().load(textures[ball.number || 0]),
       envMap: textureEquirec,
       combine: THREE.AddOperation,
     });
@@ -258,17 +277,9 @@ function setupCanvas() {
 
 function setupTest() {
   setTable();
-}
-
-function updateLine(origin, target) {
-  const positions = line.geometry.attributes.position.array;
-  positions[0] = origin.x;
-  positions[1] = origin.y;
-  positions[2] = settings.ballR;
-  positions[3] = target.x;
-  positions[4] = target.y;
-  positions[5] = settings.ballR;
-  line.geometry.attributes.position.needsUpdate = true;
+  balls.length = 1;
+  createBall('blue', 10, 1, 1.5, true);
+  createScene();
 }
 
 function updatemouse(event) {
@@ -296,6 +307,15 @@ function handleMove(event) {
     updateLine(new THREE.Vector3(intersects[0].point.x, intersects[0].point.y, settings.ballR),
       new THREE.Vector3(whiteBall.position[0], whiteBall.position[1], settings.ballR));
   }
+}
+
+function rotateBall(ball, power = ball.remainingPower || ball.power) {
+  if (!ball.direction) {
+    return;
+  }
+
+  const V = new THREE.Vector3(-1 * ball.direction[1], ball.direction[0], 0);
+  ball.sphere.rotateOnWorldAxis(V, (V.length() * power) / settings.ballR);
 }
 
 function handleClick() {
@@ -337,8 +357,9 @@ function ballVSWall(ball, wall) {
     const coll = vec2.scale(vec2.create(), V, a);
 
     ball.remainingPower = (1 - a) * ball.power;
+    rotateBall(ball, a * ball.power);
     ball.position = vec2.add(ball.position, ball.position, coll);
-    ball.direction = vec2.mul(ball.direction, ball.direction, [-1, 1]);
+    ball.direction = vec2.mul(vec2.create(), ball.direction, [-1, 1]);
     return true;
   }
   if (newPos[0] + settings.ballR > wall.x2) {
@@ -351,8 +372,9 @@ function ballVSWall(ball, wall) {
     const coll = vec2.scale(vec2.create(), V, a);
 
     ball.remainingPower = (1 - a) * ball.power;
+    rotateBall(ball, a * ball.power);
     ball.position = vec2.add(ball.position, ball.position, coll);
-    ball.direction = vec2.mul(ball.direction, ball.direction, [-1, 1]);
+    ball.direction = vec2.mul(vec2.create(), ball.direction, [-1, 1]);
     return true;
   }
   if (newPos[1] - settings.ballR < wall.y) {
@@ -365,8 +387,9 @@ function ballVSWall(ball, wall) {
     const coll = vec2.scale(vec2.create(), V, a);
 
     ball.remainingPower = (1 - a) * ball.power;
+    rotateBall(ball, a * ball.power);
     ball.position = vec2.add(ball.position, ball.position, coll);
-    ball.direction = vec2.mul(ball.direction, ball.direction, [1, -1]);
+    ball.direction = vec2.mul(vec2.create(), ball.direction, [1, -1]);
     return true;
   }
   if (newPos[1] + settings.ballR > wall.y2) {
@@ -379,8 +402,9 @@ function ballVSWall(ball, wall) {
     const coll = vec2.scale(vec2.create(), V, a);
 
     ball.remainingPower = (1 - a) * ball.power;
+    rotateBall(ball, a * ball.power);
     ball.position = vec2.add(ball.position, ball.position, coll);
-    ball.direction = vec2.mul(ball.direction, ball.direction, [1, -1]);
+    ball.direction = vec2.mul(vec2.create(), ball.direction, [1, -1]);
     return true;
   }
   return false;
@@ -467,11 +491,9 @@ function ballVSball(ballA, ballB) {
   const angleB = vec2.sub(vec2.create(), B, collisionPos);
   const angleN = vec2.normalize(vec2.create(), angleB);
 
-  const angleA = vec2.sub(vec2.create(), N, angleN);
+  const angleA = vec2.normalize(vec2.create(), vec2.sub(vec2.create(), N, angleN));
 
   ballA.position = collisionPos;
-  ballA.direction = angleA;
-  ballB.direction = angleN;
 
   const remainder = movevecLen - distance;
   const lenA = vec2.len(angleA);
@@ -484,6 +506,12 @@ function ballVSball(ballA, ballB) {
 
   ballA.remainingPower = ballA.power * (remainder / movevecLen);
   ballB.remainingPower = ballB.power * (remainder / movevecLen);
+
+  rotateBall(ballA, ballA.power - ballA.remainingPower);
+  rotateBall(ballB, ballB.power - ballB.remainingPower);
+
+  ballA.direction = angleA;
+  ballB.direction = angleN;
 
   return true;
 }
@@ -499,7 +527,7 @@ function checkCollisions(ball) {
     // if (otherBall.checked) {
     //   continue;
     // }
-    if (otherBall === ball) {
+    if (otherBall !== ball) {
       if (ballVSball(ball, otherBall)) {
         return checkCollisions(ball);
       }
@@ -534,17 +562,9 @@ function updateBall(ball) {
         ball.power = null;
       }
     }
-    const normalVectorFloor = new THREE.Vector3(0, 0, -1);
-    const axisOfRotation = new THREE.Vector3(ball.direction[0], ball.direction[1], 0)
-      .normalize()
-      .cross(normalVectorFloor);
-
-    // let quaternion = new THREE.Quaternion().setFromAxisAngle( axisOfRotation,  );
-
-    ball.sphere.rotateOnAxis(axisOfRotation, 2 * Math.PI * 1 / 60);
+    ball.sphere.position.set(ball.x, ball.y, settings.ballR);
+    rotateBall(ball);
   }
-
-  ball.sphere.position.set(ball.x, ball.y, settings.ballR);
 }
 
 function renderScene() {
