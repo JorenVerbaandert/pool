@@ -1,25 +1,25 @@
-import React, { useRef, useEffect } from "react";
-import * as vec2 from "gl-vec2";
+import React, { useRef, useEffect } from 'react';
+import * as vec2 from 'gl-vec2';
 import * as THREE from 'three';
-import ball1 from "./images/Ball1.jpg";
-import ball2 from "./images/Ball2.jpg";
-import ball3 from "./images/Ball3.jpg";
-import ball4 from "./images/Ball4.jpg";
-import ball5 from "./images/Ball5.jpg";
-import ball6 from "./images/Ball6.jpg";
-import ball7 from "./images/Ball7.jpg";
-import ball8 from "./images/Ball8.jpg";
-import ball9 from "./images/Ball9.jpg";
-import ball10 from "./images/Ball10.jpg";
-import ball11 from "./images/Ball11.jpg";
-import ball12 from "./images/Ball12.jpg";
-import ball13 from "./images/Ball13.jpg";
-import ball14 from "./images/Ball14.jpg";
-import ball15 from "./images/Ball15.jpg";
-import ballCue from "./images/BallCue.jpg";
+import ball1 from './images/Ball1.jpg';
+import ball2 from './images/Ball2.jpg';
+import ball3 from './images/Ball3.jpg';
+import ball4 from './images/Ball4.jpg';
+import ball5 from './images/Ball5.jpg';
+import ball6 from './images/Ball6.jpg';
+import ball7 from './images/Ball7.jpg';
+import ball8 from './images/Ball8.jpg';
+import ball9 from './images/Ball9.jpg';
+import ball10 from './images/Ball10.jpg';
+import ball11 from './images/Ball11.jpg';
+import ball12 from './images/Ball12.jpg';
+import ball13 from './images/Ball13.jpg';
+import ball14 from './images/Ball14.jpg';
+import ball15 from './images/Ball15.jpg';
+import ballCue from './images/BallCue.jpg';
 import cloth from './images/cloth.jpg';
-import env from "./images/garage_1k.jpg";
-	
+import env from './images/garage_1k.jpg';
+
 window.vec2 = vec2;
 
 const height = 740;
@@ -33,7 +33,7 @@ const settings = {
 
 let canvas = null;
 let render = null;
-let ctx = null;
+const ctx = null;
 let scene = null;
 let camera = null;
 let linegeometry = null;
@@ -42,21 +42,41 @@ let line = null;
 const table = {};
 let whiteBall = {};
 let balls = [];
+const textures = [
+  ballCue,
+  ball1,
+  ball2,
+  ball3,
+  ball4,
+  ball5,
+  ball6,
+  ball7,
+  ball8,
+  ball9,
+  ball10,
+  ball11,
+  ball12,
+  ball13,
+  ball14,
+  ball15,
+];
 
-let raycaster = new THREE.Raycaster();
-let mouse = new THREE.Vector2();
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
 
 function setTable() {
   const outer = {
-    x: 0, y: 100, width: 1140, height: 640
+    x: 0, y: 100, width: 1140, height: 640,
   };
   const inner = {
-    x: outer.x + 70, y: outer.y + 70,
-    width: outer.width - 140, height: outer.height - 140
+    x: outer.x + 70,
+    y: outer.y + 70,
+    width: outer.width - 140,
+    height: outer.height - 140,
   };
   inner.x2 = inner.x + inner.width;
   inner.y2 = inner.y + inner.height;
-  inner.middle = [(inner.x + inner.x2) /2, (inner.y + inner.y2) /2]
+  inner.middle = [(inner.x + inner.x2) / 2, (inner.y + inner.y2) / 2];
 
   table.outer = outer;
   table.drawOuter = [outer.x, outer.y, outer.width, outer.height];
@@ -65,7 +85,7 @@ function setTable() {
 }
 
 function createScene() {
-  render = new THREE.WebGLRenderer({canvas: canvas, antialias: true});
+  render = new THREE.WebGLRenderer({ canvas, antialias: true });
 
   render.setClearColor(0x000000, 1);
   render.setSize(width, height);
@@ -73,12 +93,12 @@ function createScene() {
   render.shadowMapSoft = true;
 
   scene = new THREE.Scene();
-  var aspect = width / height;
-  
+  const aspect = width / height;
+
   // Lights
 
-  var directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
-  directionalLight.position.set(1500,400,1000);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+  directionalLight.position.set(1500, 400, 1000);
   directionalLight.shadowCameraNear = 3;
   directionalLight.shadowCameraFar = 10000;
   directionalLight.shadowCameraFov = 45;
@@ -88,30 +108,24 @@ function createScene() {
   directionalLight.shadowCameraTop = 600;
   directionalLight.shadowCameraBottom = -600;
   directionalLight.shadow.mapSize.width = 1024;
-  directionalLight.shadow.mapSize.height = 1024; 
+  directionalLight.shadow.mapSize.height = 1024;
 
-  scene.add( directionalLight );
-  
-  var light = new THREE.AmbientLight( 0x808080 );
-  scene.add( light );
+  scene.add(directionalLight);
+
+  const light = new THREE.AmbientLight(0x808080);
+  scene.add(light);
 
   // line
 
   linegeometry = new THREE.BufferGeometry();
 
-  let lineMaterial = new THREE.LineBasicMaterial( { color: 0xff0000 } );
-  var positions = new Float32Array( 2 * 3 );
-  linegeometry.addAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
-  linegeometry.setDrawRange( 0, 2 );
+  const lineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+  const positions = new Float32Array(2 * 3);
+  linegeometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
+  linegeometry.setDrawRange(0, 2);
 
-  line = new THREE.Line( linegeometry, lineMaterial );
-
-  updateLine(new THREE.Vector3( whiteBall.position[0], whiteBall.position[1], 1), 
-	  new THREE.Vector3( 0, 0, 1) 
-  );
-
-  linegeometry.attributes.position.needsUpdate = true;
-  scene.add( line );
+  line = new THREE.Line(linegeometry, lineMaterial);
+  scene.add(line);
 
   // Camera
 
@@ -123,71 +137,49 @@ function createScene() {
 
   // Table
 
-  let clothTexture = new THREE.TextureLoader().load( cloth );
+  const clothTexture = new THREE.TextureLoader().load(cloth);
   clothTexture.wrapS = THREE.RepeatWrapping;
   clothTexture.wrapT = THREE.RepeatWrapping;
   clothTexture.flipY = false;
-  clothTexture.minFilter = THREE.LinearFilter; 
+  clothTexture.minFilter = THREE.LinearFilter;
   clothTexture.magFilter = THREE.LinearFilter;
   clothTexture.generateMipmaps = false;
   clothTexture.repeat.x = 4;
   clothTexture.repeat.y = 2;
 
-  // let noiseData = createNoise();
-  // let noiseTexture = new THREE.DataTexture( noiseData, table.inner.width, table.inner.height, THREE.RGBFormat );
-  // noiseTexture.needsUpdate = true;
+  const tableMaterial = new THREE.MeshLambertMaterial({
+    color: 'green',
+    map: clothTexture,
+  });
 
-  const tableMaterial = new THREE.MeshLambertMaterial( {
-	  color: "green",
-	  map: clothTexture,
-	});
-
-  var geometry = new THREE.PlaneGeometry( table.inner.width, table.inner.height );
-  var tablePlane = new THREE.Mesh( geometry, tableMaterial );
+  const geometry = new THREE.PlaneGeometry(table.inner.width, table.inner.height);
+  const tablePlane = new THREE.Mesh(geometry, tableMaterial);
   tablePlane.position.set(...table.inner.middle, 0);
   tablePlane.receiveShadow = true;
-  scene.add( tablePlane );
+  scene.add(tablePlane);
 
-  let specularShininess = Math.pow( 2, 8 );
+  const specularShininess = 2 ** 8;
 
-  let textureEquirec = new THREE.TextureLoader().load( env );
+  const textureEquirec = new THREE.TextureLoader().load(env);
   textureEquirec.mapping = THREE.EquirectangularReflectionMapping;
   textureEquirec.magFilter = THREE.LinearFilter;
   textureEquirec.minFilter = THREE.LinearMipMapLinearFilter;
   textureEquirec.encoding = THREE.sRGBEncoding;
   textureEquirec.format = THREE.RGBFormat;
 
-  const textures = [];
-  textures.push(new THREE.TextureLoader().load( ballCue ));
-  textures.push(new THREE.TextureLoader().load( ball1 ));
-  textures.push(new THREE.TextureLoader().load( ball2 ));
-  textures.push(new THREE.TextureLoader().load( ball3 ));
-  textures.push(new THREE.TextureLoader().load( ball4 ));
-  textures.push(new THREE.TextureLoader().load( ball5 ));
-  textures.push(new THREE.TextureLoader().load( ball6 ));
-  textures.push(new THREE.TextureLoader().load( ball7 ));
-  textures.push(new THREE.TextureLoader().load( ball8 ));
-  textures.push(new THREE.TextureLoader().load( ball9 ));
-  textures.push(new THREE.TextureLoader().load( ball10 ));
-  textures.push(new THREE.TextureLoader().load( ball11 ));
-  textures.push(new THREE.TextureLoader().load( ball12 ));
-  textures.push(new THREE.TextureLoader().load( ball13 ));
-  textures.push(new THREE.TextureLoader().load( ball14 ));
-  textures.push(new THREE.TextureLoader().load( ball15 ));
+  balls.map((ball, index) => {
+    const ballGeometry = new THREE.SphereGeometry(settings.ballR, 32, 16);
 
-  balls.map((ball) => {
-    let geometry = new THREE.SphereGeometry( settings.ballR, 32, 16 );
+    const material = new THREE.MeshPhongMaterial({
+      specular: 'white',
+      reflectivity: 0.25,
+      shininess: specularShininess,
+      map: new THREE.TextureLoader().load(textures[index]),
+      envMap: textureEquirec,
+      combine: THREE.AddOperation,
+    });
 
-    let material = new THREE.MeshPhongMaterial( {
-        specular: "white",
-        reflectivity: 0.25,
-        shininess: specularShininess,
-        map: textures[ball.number],
-		envMap: textureEquirec,
-		combine: THREE.AddOperation
-    } );
-
-    let sphere = new THREE.Mesh( geometry, material );
+    const sphere = new THREE.Mesh(ballGeometry, material);
     sphere.position.set(ball.x, ball.y, settings.ballR);
     sphere.castShadow = true;
     sphere.receiveShadow = true;
@@ -196,7 +188,6 @@ function createScene() {
     ball.sphere = sphere;
     return sphere;
   });
-
 }
 
 function createBall(color, number, col = 0, row = 0, half = false) {
@@ -204,7 +195,10 @@ function createBall(color, number, col = 0, row = 0, half = false) {
   const y = row * 27;
 
   const ball = {
-    position: vec2.fromValues(table.inner.x + 3 * (table.inner.width / 4) + x, table.inner.y + (table.inner.height / 2) + y),
+    position: vec2.fromValues(
+      table.inner.x + 3 * (table.inner.width / 4) + x,
+      table.inner.y + (table.inner.height / 2) + y,
+    ),
     get x() {
       return this.position[0];
     },
@@ -221,37 +215,39 @@ function createBall(color, number, col = 0, row = 0, half = false) {
 }
 
 function createBalls() {
-
   balls = [];
 
   whiteBall = {
-    position: vec2.fromValues(table.inner.x + (table.inner.width / 4), table.inner.y + (table.inner.height / 2)),
+    position: vec2.fromValues(
+      table.inner.x + (table.inner.width / 4),
+      table.inner.y + (table.inner.height / 2),
+    ),
     get x() {
       return this.position[0];
     },
     get y() {
       return this.position[1];
     },
-    color: "white",
+    color: 'white',
   };
   balls.push(whiteBall);
-  
-  createBall("black", 8);
-  createBall("yellow", 1, -2);
-  createBall("yellow", 9, -1, 0.5, true);
-  createBall("green", 14, -1, -0.5, true);
-  createBall("blue", 2, 0, -1);
-  createBall("green", 6, 0, 1);
-  createBall("orange", 13, 1, -1.5, true);
-  createBall("darkred", 15, 1, -0.5, true);
-  createBall("darkred", 7, 1, 0.5);
-  createBall("blue", 10, 1, 1.5, true);
 
-  createBall("orange", 5, 2, -2);
-  createBall("purple", 12, 2, -1, true);
-  createBall("purple", 4, 2, 0);
-  createBall("red", 11, 2, 1, true);
-  createBall("red", 3, 2, 2);
+  createBall('black', 8);
+  createBall('yellow', 1, -2);
+  createBall('yellow', 9, -1, 0.5, true);
+  createBall('green', 14, -1, -0.5, true);
+  createBall('blue', 2, 0, -1);
+  createBall('green', 6, 0, 1);
+  createBall('orange', 13, 1, -1.5, true);
+  createBall('darkred', 15, 1, -0.5, true);
+  createBall('darkred', 7, 1, 0.5);
+  createBall('blue', 10, 1, 1.5, true);
+
+  createBall('orange', 5, 2, -2);
+  createBall('purple', 12, 2, -1, true);
+  createBall('purple', 4, 2, 0);
+  createBall('red', 11, 2, 1, true);
+  createBall('red', 3, 2, 2);
 }
 
 function setupCanvas() {
@@ -260,15 +256,19 @@ function setupCanvas() {
   createScene();
 }
 
+function setupTest() {
+  setTable();
+}
+
 function updateLine(origin, target) {
-  let positions = line.geometry.attributes.position.array;
+  const positions = line.geometry.attributes.position.array;
   positions[0] = origin.x;
   positions[1] = origin.y;
   positions[2] = settings.ballR;
   positions[3] = target.x;
   positions[4] = target.y;
   positions[5] = settings.ballR;
-  line.geometry.attributes.position.needsUpdate = true; 
+  line.geometry.attributes.position.needsUpdate = true;
 }
 
 function updatemouse(event) {
@@ -276,8 +276,8 @@ function updatemouse(event) {
     return;
   }
   const rect = canvas.getBoundingClientRect();
-  mouse.x = ( (event.clientX - rect.x) / rect.width) * 2 - 1;
-  mouse.y = - ( (event.clientY - rect.y) / rect.height) * 2 + 1;
+  mouse.x = ((event.clientX - rect.x) / rect.width) * 2 - 1;
+  mouse.y = -((event.clientY - rect.y) / rect.height) * 2 + 1;
 }
 
 function handleMove(event) {
@@ -286,30 +286,30 @@ function handleMove(event) {
   if (!scene) {
     return;
   }
-  
-  raycaster.setFromCamera( mouse, camera );
 
-  // calculate objects intersecting the picking ray 
-  var intersects = raycaster.intersectObjects( scene.children );
+  raycaster.setFromCamera(mouse, camera);
+
+  // calculate objects intersecting the picking ray
+  const intersects = raycaster.intersectObjects(scene.children);
 
   if (intersects[0]) {
-  	updateLine(new THREE.Vector3(intersects[0].point.x, intersects[0].point.y, settings.ballR), 
-	  new THREE.Vector3( whiteBall.position[0], whiteBall.position[1], settings.ballR));
+    updateLine(new THREE.Vector3(intersects[0].point.x, intersects[0].point.y, settings.ballR),
+      new THREE.Vector3(whiteBall.position[0], whiteBall.position[1], settings.ballR));
   }
 }
 
-function handleClick(event) {
+function handleClick() {
   if (balls.some(ball => ball.power)) {
     return;
   }
-  
-  raycaster.setFromCamera( mouse, camera );
 
-  // calculate objects intersecting the picking ray 
-  var intersects = raycaster.intersectObjects( scene.children );
+  raycaster.setFromCamera(mouse, camera);
+
+  // calculate objects intersecting the picking ray
+  const intersects = raycaster.intersectObjects(scene.children);
 
   const click = vec2.fromValues(intersects[0].point.x, intersects[0].point.y);
-  
+
   const ball = vec2.fromValues(whiteBall.x, whiteBall.y);
 
   const direction = vec2.sub(vec2.create(), ball, click);
@@ -320,7 +320,12 @@ function handleClick(event) {
 }
 
 function ballVSWall(ball, wall) {
-  const newPos = vec2.scaleAndAdd(vec2.create(), ball.position, ball.direction, ball.remainingPower || ball.power);
+  const newPos = vec2.scaleAndAdd(
+    vec2.create(),
+    ball.position,
+    ball.direction,
+    ball.remainingPower || ball.power,
+  );
 
   if (newPos[0] - settings.ballR < wall.x) {
     const N = vec2.fromValues(wall.x - ball.x + settings.ballR, 0);
@@ -328,7 +333,7 @@ function ballVSWall(ball, wall) {
     const V = vec2.scale(vec2.create(), ball.direction, ball.power);
 
     const a = N[0] / V[0];
-    
+
     const coll = vec2.scale(vec2.create(), V, a);
 
     ball.remainingPower = (1 - a) * ball.power;
@@ -342,7 +347,7 @@ function ballVSWall(ball, wall) {
     const V = vec2.scale(vec2.create(), ball.direction, ball.power);
 
     const a = N[0] / V[0];
-    
+
     const coll = vec2.scale(vec2.create(), V, a);
 
     ball.remainingPower = (1 - a) * ball.power;
@@ -356,7 +361,7 @@ function ballVSWall(ball, wall) {
     const V = vec2.scale(vec2.create(), ball.direction, ball.power);
 
     const a = N[1] / V[1];
-    
+
     const coll = vec2.scale(vec2.create(), V, a);
 
     ball.remainingPower = (1 - a) * ball.power;
@@ -370,7 +375,7 @@ function ballVSWall(ball, wall) {
     const V = vec2.scale(vec2.create(), ball.direction, ball.power);
 
     const a = N[1] / V[1];
-    
+
     const coll = vec2.scale(vec2.create(), V, a);
 
     ball.remainingPower = (1 - a) * ball.power;
@@ -378,11 +383,12 @@ function ballVSWall(ball, wall) {
     ball.direction = vec2.mul(ball.direction, ball.direction, [1, -1]);
     return true;
   }
+  return false;
 }
 
 function ballVSball(ballA, ballB) {
   // Early Escape test: if the length of the movevec is less
-  // than distance between the centers of these circles minus 
+  // than distance between the centers of these circles minus
   // their radii, there's no way they can hit.
   const A = ballA.position;
   const B = ballB.position;
@@ -392,7 +398,7 @@ function ballVSball(ballA, ballB) {
   const sumRadii = (settings.ballR + settings.ballR);
   const movevecLen = vec2.len(movevec);
   dist -= sumRadii;
-  if(movevecLen < dist){
+  if (movevecLen < dist) {
     return false;
   }
 
@@ -400,18 +406,18 @@ function ballVSball(ballA, ballB) {
   const N = vec2.create();
   vec2.normalize(N, vec2.copy(N, movevec));
 
-  // Find C, the vector from the center of the moving 
+  // Find C, the vector from the center of the moving
   // circle A to the center of B
   const C = vec2.sub(vec2.create(), B, A);
 
   // D = N . C = ||C|| * cos(angle between N and C)
   const D = vec2.dot(N, C);
 
-  // Another early escape: Make sure that A is moving 
-  // towards B! If the dot product between the movevec and 
-  // B.center - A.center is less that or equal to 0, 
+  // Another early escape: Make sure that A is moving
+  // towards B! If the dot product between the movevec and
+  // B.center - A.center is less that or equal to 0,
   // A isn't isn't moving towards B
-  if(D <= 0){
+  if (D <= 0) {
     return false;
   }
   // Find the length of the vector C
@@ -419,37 +425,37 @@ function ballVSball(ballA, ballB) {
 
   const F = (lengthC * lengthC) - (D * D);
 
-  // Escape test: if the closest that A will get to B 
-  // is more than the sum of their radii, there's no 
+  // Escape test: if the closest that A will get to B
+  // is more than the sum of their radii, there's no
   // way they are going collide
   const sumRadiiSquared = sumRadii * sumRadii;
-  if(F >= sumRadiiSquared){
+  if (F >= sumRadiiSquared) {
     return false;
   }
 
-  // We now have F and sumRadii, two sides of a right triangle. 
+  // We now have F and sumRadii, two sides of a right triangle.
   // Use these to find the third side, sqrt(T)
   const T = sumRadiiSquared - F;
 
-  // If there is no such right triangle with sides length of 
-  // sumRadii and sqrt(f), T will probably be less than 0. 
-  // Better to check now than perform a square root of a 
-  // negative number. 
-  if(T < 0){
+  // If there is no such right triangle with sides length of
+  // sumRadii and sqrt(f), T will probably be less than 0.
+  // Better to check now than perform a square root of a
+  // negative number.
+  if (T < 0) {
     return false;
   }
 
-  // Therefore the distance the circle has to travel along 
+  // Therefore the distance the circle has to travel along
   // movevec is D - sqrt(T)
   const distance = D - Math.sqrt(T);
 
-  // Finally, make sure that the distance A has to move 
-  // to touch B is not greater than the magnitude of the 
-  // movement vector. 
-  if(movevecLen < distance){
+  // Finally, make sure that the distance A has to move
+  // to touch B is not greater than the magnitude of the
+  // movement vector.
+  if (movevecLen < distance) {
     return false;
   }
-  // Set the length of the movevec so that the circles will just 
+  // Set the length of the movevec so that the circles will just
   // touch
   const collisionDiff = vec2.copy(vec2.create(), movevec);
 
@@ -462,11 +468,11 @@ function ballVSball(ballA, ballB) {
   const angleN = vec2.normalize(vec2.create(), angleB);
 
   const angleA = vec2.sub(vec2.create(), N, angleN);
-  
+
   ballA.position = collisionPos;
   ballA.direction = angleA;
   ballB.direction = angleN;
-  
+
   const remainder = movevecLen - distance;
   const lenA = vec2.len(angleA);
   const lenB = vec2.len(angleN);
@@ -474,7 +480,7 @@ function ballVSball(ballA, ballB) {
   const percentB = (lenB / (lenA + lenB));
 
   ballB.power = ballA.power * percentB;
-  ballA.power = ballA.power * percentA;
+  ballA.power *= percentA;
 
   ballA.remainingPower = ballA.power * (remainder / movevecLen);
   ballB.remainingPower = ballB.power * (remainder / movevecLen);
@@ -494,22 +500,21 @@ function checkCollisions(ball) {
     //   continue;
     // }
     if (otherBall === ball) {
-      continue;
-    }
-    if (ballVSball(ball, otherBall)) {
-      return checkCollisions(ball);
+      if (ballVSball(ball, otherBall)) {
+        return checkCollisions(ball);
+      }
     }
   }
-  
+
   if (ballVSWall(ball, table.inner)) {
     return checkCollisions(ball);
-  };
+  }
 
   vec2.scaleAndAdd(ballPos, oldPos, dir, power);
 
   ball.position = ballPos;
 
-  return;
+  return null;
 }
 
 function updateBall(ball) {
@@ -523,37 +528,41 @@ function updateBall(ball) {
     }
 
     if (ball.power) {
-      ball.power = ball.power * settings.drag;
-    
+      ball.power *= settings.drag;
+
       if (ball.power < settings.minPower) {
         ball.power = null;
       }
     }
-    let normalVectorFloor = new THREE.Vector3(0,0,-1);
-    let axisOfRotation = new THREE.Vector3(ball.direction[0], ball.direction[1], 0).normalize().cross(normalVectorFloor);
+    const normalVectorFloor = new THREE.Vector3(0, 0, -1);
+    const axisOfRotation = new THREE.Vector3(ball.direction[0], ball.direction[1], 0)
+      .normalize()
+      .cross(normalVectorFloor);
 
-    //let quaternion = new THREE.Quaternion().setFromAxisAngle( axisOfRotation,  );
+    // let quaternion = new THREE.Quaternion().setFromAxisAngle( axisOfRotation,  );
 
-    ball.sphere.rotateOnAxis(axisOfRotation, 2*Math.PI * 1/60);
+    ball.sphere.rotateOnAxis(axisOfRotation, 2 * Math.PI * 1 / 60);
   }
-  
+
   ball.sphere.position.set(ball.x, ball.y, settings.ballR);
 }
 
 function renderScene() {
-    render.render(scene, camera);
+  render.render(scene, camera);
 }
 
 function updateBalls() {
   balls.forEach(updateBall);
-  balls.forEach(ball => ball.checked = false);
+  balls.forEach((ball) => {
+    ball.checked = false;
+  });
 }
 
 function update() {
   updateBalls();
 
   renderScene();
-  window.requestAnimationFrame(update);  
+  window.requestAnimationFrame(update);
 }
 
 export default function Canvas() {
@@ -574,12 +583,13 @@ export default function Canvas() {
     <div>
       <canvas
         ref={canvasRef}
-        width={ width }
-        height={ height }
+        width={width}
+        height={height}
         onClick={handleClick}
         onMouseMove={handleMove}
       />
-      <button onClick={setupCanvas}>reset!</button>
+      <button type="button" onClick={setupCanvas}>reset!</button>
+      <button type="button" onClick={setupTest}>test!</button>
     </div>
-  )
+  );
 }
