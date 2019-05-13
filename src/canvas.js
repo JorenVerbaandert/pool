@@ -17,12 +17,10 @@ import ball13 from './images/Ball13.jpg';
 import ball14 from './images/Ball14.jpg';
 import ball15 from './images/Ball15.jpg';
 import ballCue from './images/BallCue.jpg';
-import jeroenTable from './Pooltable.fbx';
 import env from './images/garage_1k.jpg';
 import TrackballControls from './trackBallControls';
-import FBXLoader from './FBXLoader';
-import jeroenTexture from './PoolTable_Textures.png';
 import { createBalls } from './ball';
+import loadTable from './jeroenTable';
 
 window.vec2 = vec2;
 
@@ -142,18 +140,6 @@ function createScene() {
   const light = new THREE.AmbientLight(0x808080);
   scene.add(light);
 
-  function onLoad(m) {
-    console.log(m);
-  }
-
-  function onError(error) {
-    console.log(error);
-  }
-
-  function onProgress(p) {
-    console.log(p);
-  }
-
   // line
 
   linegeometry = new THREE.BufferGeometry();
@@ -199,33 +185,7 @@ function createScene() {
 
   // Table
 
-  const loader = new FBXLoader();
-  const tableTexture = new THREE.TextureLoader().load(jeroenTexture, onLoad, onProgress, onError);
-  const tableMaterial = new THREE.MeshLambertMaterial({ map: tableTexture });
-  loader.load(jeroenTable, (object) => {
-    object.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-
-        child.material = tableMaterial;
-        child.material.needsUpdate = true;
-      }
-    });
-
-    object.translateZ(-310);
-    object.translateX(590);
-    object.translateY(425);
-
-    object.rotateX(Math.PI / 2);
-    object.rotateY(Math.PI / 2);
-
-    // object.rotation.set(new THREE.Vector3( 1, 1, 1));
-    // object.rotateOnWorldAxis(new THREE.Vector3(1,0,0), Math.Pi / 2 );
-    object.scale.set(4, 4, 4);
-
-    scene.add(object);
-  });
+  loadTable(scene);
 
   const specularShininess = 2 ** 8;
 
@@ -293,7 +253,7 @@ function handleMove(event) {
   }
 }
 
-function rotateBall(ball, power = ball.remainingPower || ball.power) {
+function rotateBall(ball, power = ball.getPower()) {
   if (!ball.direction) {
     return;
   }
@@ -303,7 +263,7 @@ function rotateBall(ball, power = ball.remainingPower || ball.power) {
 }
 
 function handleClick() {
-  if (balls.some(ball => ball.power)) {
+  if (balls.some(ball => ball.getPower())) {
     return;
   }
 
@@ -325,73 +285,45 @@ function handleClick() {
   }
 }
 
+function updateWallBounce(ball, wall, axis, addBallR, xAxis = (axis === 'x' || axis === 'x2')) {
+  const N = vec2.fromValues(wall[axis] - ball[xAxis ? 'x' : 'y'] + addBallR, 0);
+
+  const V = vec2.scale(vec2.create(), ball.direction, ball.getPower());
+
+  const index = xAxis ? 0 : 1;
+  const a = N[index] / V[index];
+
+  const coll = vec2.scale(vec2.create(), V, a);
+
+  rotateBall(ball, a * ball.getPower());
+  ball.remainingPower = (1 - a) * ball.getPower();
+  ball.position = vec2.add(ball.position, ball.position, coll);
+
+  const mul = xAxis ? [-1, 1] : [1, -1];
+
+  ball.direction = vec2.mul(vec2.create(), ball.direction, mul);
+  return true;
+}
+
 function ballVSWall(ball, wall) {
   const newPos = vec2.scaleAndAdd(
     vec2.create(),
     ball.position,
     ball.direction,
-    ball.remainingPower || ball.power,
+    ball.getPower(),
   );
 
   if (newPos[0] - settings.ballR < wall.x) {
-    const N = vec2.fromValues(wall.x - ball.x + settings.ballR, 0);
-
-    const V = vec2.scale(vec2.create(), ball.direction, ball.power);
-
-    const a = N[0] / V[0];
-
-    const coll = vec2.scale(vec2.create(), V, a);
-
-    ball.remainingPower = (1 - a) * ball.power;
-    rotateBall(ball, a * ball.power);
-    ball.position = vec2.add(ball.position, ball.position, coll);
-    ball.direction = vec2.mul(vec2.create(), ball.direction, [-1, 1]);
-    return true;
+    return updateWallBounce(ball, wall, 'x', settings.ballR);
   }
   if (newPos[0] + settings.ballR > wall.x2) {
-    const N = vec2.fromValues(wall.x2 - ball.x - settings.ballR, 0);
-
-    const V = vec2.scale(vec2.create(), ball.direction, ball.power);
-
-    const a = N[0] / V[0];
-
-    const coll = vec2.scale(vec2.create(), V, a);
-
-    ball.remainingPower = (1 - a) * ball.power;
-    rotateBall(ball, a * ball.power);
-    ball.position = vec2.add(ball.position, ball.position, coll);
-    ball.direction = vec2.mul(vec2.create(), ball.direction, [-1, 1]);
-    return true;
+    return updateWallBounce(ball, wall, 'x2', -settings.ballR);
   }
   if (newPos[1] - settings.ballR < wall.y) {
-    const N = vec2.fromValues(0, wall.y - ball.y + settings.ballR);
-
-    const V = vec2.scale(vec2.create(), ball.direction, ball.power);
-
-    const a = N[1] / V[1];
-
-    const coll = vec2.scale(vec2.create(), V, a);
-
-    ball.remainingPower = (1 - a) * ball.power;
-    rotateBall(ball, a * ball.power);
-    ball.position = vec2.add(ball.position, ball.position, coll);
-    ball.direction = vec2.mul(vec2.create(), ball.direction, [1, -1]);
-    return true;
+    return updateWallBounce(ball, wall, 'y', settings.ballR);
   }
   if (newPos[1] + settings.ballR > wall.y2) {
-    const N = vec2.fromValues(0, wall.y2 - ball.y - settings.ballR);
-
-    const V = vec2.scale(vec2.create(), ball.direction, ball.power);
-
-    const a = N[1] / V[1];
-
-    const coll = vec2.scale(vec2.create(), V, a);
-
-    ball.remainingPower = (1 - a) * ball.power;
-    rotateBall(ball, a * ball.power);
-    ball.position = vec2.add(ball.position, ball.position, coll);
-    ball.direction = vec2.mul(vec2.create(), ball.direction, [1, -1]);
-    return true;
+    return updateWallBounce(ball, wall, 'y2', -settings.ballR);
   }
   return false;
 }
@@ -402,7 +334,12 @@ function ballVSball(ballA, ballB) {
   // their radii, there's no way they can hit.
   const A = ballA.position;
   const B = ballB.position;
-  const movevec = vec2.scale(vec2.create(), ballA.direction, ballA.power);
+  let movevec = vec2.scale(vec2.create(), ballA.direction, ballA.getPower());
+
+  if (ballB.getPower()) {
+    const movevecB = vec2.scale(vec2.create(), ballB.direction, ballB.getPower());
+    movevec = vec2.sub(vec2.create(), movevec, movevecB);
+  }
 
   let dist = vec2.dist(A, B);
   const sumRadii = (settings.ballR + settings.ballR);
@@ -490,11 +427,14 @@ function ballVSball(ballA, ballB) {
   ballB.power = ballA.power * percentB;
   ballA.power *= percentA;
 
-  ballA.remainingPower = ballA.power * (remainder / movevecLen);
-  ballB.remainingPower = ballB.power * (remainder / movevecLen);
+  const ballAOldPower = ballA.getPower() * (remainder / movevecLen);
+  const ballBOldPower = ballB.getPower() * (remainder / movevecLen);
 
-  rotateBall(ballA, ballA.power - ballA.remainingPower);
-  rotateBall(ballB, ballB.power - ballB.remainingPower);
+  rotateBall(ballA, ballA.getPower() - ballAOldPower);
+  rotateBall(ballB, ballB.getPower() - ballBOldPower);
+
+  ballA.remainingPower = ballAOldPower;
+  ballB.remainingPower = ballBOldPower;
 
   ballA.direction = angleA;
   ballB.direction = angleN;
@@ -505,7 +445,7 @@ function ballVSball(ballA, ballB) {
 function checkCollisions(ball) {
   const oldPos = ball.position;
   const dir = ball.direction;
-  const power = ball.remainingPower || ball.power;
+  const power = ball.getPower();
   const ballPos = vec2.create();
 
   for (const otherBall of balls) {
