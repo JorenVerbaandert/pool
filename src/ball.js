@@ -1,14 +1,16 @@
 import * as vec2 from 'gl-vec2';
 
-export function createBall(table, color, number, col = 0, row = 0, half = false) {
+export function createBall(table, color, number, col = 0, row = 0, half = false, position) {
   const x = col * 27;
   const y = row * 27;
 
+  const startPos = position || [
+    table.inner.x + 3 * (table.inner.width / 4) + x,
+    table.inner.y + (table.inner.height / 2) + y,
+  ];
+
   const ball = {
-    position: vec2.fromValues(
-      table.inner.x + 3 * (table.inner.width / 4) + x,
-      table.inner.y + (table.inner.height / 2) + y,
-    ),
+    position: vec2.fromValues(...startPos),
     get x() {
       return this.position[0];
     },
@@ -18,6 +20,7 @@ export function createBall(table, color, number, col = 0, row = 0, half = false)
     color,
     half,
     number,
+    getPower: () => ball.remainingPower || ball.power,
   };
   return ball;
 }
@@ -25,20 +28,10 @@ export function createBall(table, color, number, col = 0, row = 0, half = false)
 export function createBalls(table) {
   const balls = [];
 
-  const whiteBall = {
-    position: vec2.fromValues(
-      table.inner.x + (table.inner.width / 4),
-      table.inner.y + (table.inner.height / 2),
-    ),
-    get x() {
-      return this.position[0];
-    },
-    get y() {
-      return this.position[1];
-    },
-    color: 'white',
-  };
-  balls.push(whiteBall);
+  balls.push(createBall(table, 'white', 0, 0, 0, false, [
+    table.inner.x + (table.inner.width / 4),
+    table.inner.y + (table.inner.height / 2),
+  ]));
 
   balls.push(createBall(table, 'black', 8));
   balls.push(createBall(table, 'yellow', 1, -2));
@@ -56,4 +49,6 @@ export function createBalls(table) {
   balls.push(createBall(table, 'purple', 4, 2, 0));
   balls.push(createBall(table, 'red', 11, 2, 1, true));
   balls.push(createBall(table, 'red', 3, 2, 2));
+
+  return balls;
 }
