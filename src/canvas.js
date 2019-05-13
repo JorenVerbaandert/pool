@@ -112,6 +112,13 @@ function createScene() {
   scene = new THREE.Scene();
   const aspect = width / height;
 
+  // intersection plane
+  var geometry = new THREE.PlaneGeometry( 2000, 2000, 2 );
+  var material = new THREE.MeshBasicMaterial( {
+    color: 0x248f24, alphaTest: 0, visible: false});
+  var intersectionPlane = new THREE.Mesh( geometry, material );
+  scene.add( intersectionPlane );
+
   // Lights
 
   const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
