@@ -1,4 +1,4 @@
-# simPOOL [![Build Status](https://ci.spamasaurus.com/api/badges/djpbessems/simPOOL/status.svg)](https://ci.spamasaurus.com/djpbessems/simPOOL)
+# simPOOL [![Build Status](https://ci.spamasaurus.com/api/badges/djpbessems/simPOOL/status.svg)](https://ci.spamasaurus.com/djpbessems/simPOOL) ![https://simpool.spamasaurus.com](https://img.shields.io/badge/demo-live-darkgreen.svg)
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 Ik vind het niet slecht.
