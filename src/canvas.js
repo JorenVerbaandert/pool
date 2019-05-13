@@ -17,8 +17,12 @@ import ball13 from './images/Ball13.jpg';
 import ball14 from './images/Ball14.jpg';
 import ball15 from './images/Ball15.jpg';
 import ballCue from './images/BallCue.jpg';
+import jeroenTable from './Pooltable.fbx';
 import cloth from './images/cloth.jpg';
 import env from './images/garage_1k.jpg';
+import TrackballControls from './trackBallControls';
+import FBXLoader from './FBXLoader';
+import jeroenTexture from './PoolTable_Textures.png';
 
 window.vec2 = vec2;
 
@@ -38,6 +42,7 @@ let scene = null;
 let camera = null;
 let linegeometry = null;
 let line = null;
+let controls = null;
 
 const table = {};
 let whiteBall = {};
@@ -99,8 +104,9 @@ function createScene() {
   render = new THREE.WebGLRenderer({ canvas, antialias: true });
 
   render.setClearColor(0x000000, 1);
+  //render.setClearColor( 0xffffff, 1 );
   render.setSize(width, height);
-  render.shadowMapEnabled = true;
+  render.shadowMap.enabled = true;
   render.shadowMapSoft = true;
 
   scene = new THREE.Scene();
@@ -110,14 +116,14 @@ function createScene() {
 
   const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
   directionalLight.position.set(1500, 400, 1000);
-  directionalLight.shadowCameraNear = 3;
-  directionalLight.shadowCameraFar = 10000;
-  directionalLight.shadowCameraFov = 45;
+  directionalLight.shadow.camera.near = 3;
+  directionalLight.shadow.camera.far = 10000;
+  directionalLight.shadow.camera.fov = 45;
   directionalLight.castShadow = true;
-  directionalLight.shadowCameraLeft = -600;
-  directionalLight.shadowCameraRight = 600;
-  directionalLight.shadowCameraTop = 600;
-  directionalLight.shadowCameraBottom = -600;
+  directionalLight.shadow.camera.left = -600;
+  directionalLight.shadow.camera.right = 600;
+  directionalLight.shadow.camera.top = 600;
+  directionalLight.shadow.camera.bottom = -600;
   directionalLight.shadow.mapSize.width = 1024;
   directionalLight.shadow.mapSize.height = 1024;
 
@@ -125,6 +131,18 @@ function createScene() {
 
   const light = new THREE.AmbientLight(0x808080);
   scene.add(light);
+
+  function onLoad(m){
+    console.log(m);
+  }
+
+  function onError(error){
+      console.log(error);
+  }
+
+  function onProgress(p){
+    console.log(p);
+  }
 
   // line
 
@@ -146,36 +164,80 @@ function createScene() {
 
   // Camera
 
+//   camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 1000 );
+//   camera.position.z = 500;
+
   camera = new THREE.PerspectiveCamera(45, aspect, 1, 10000);
   camera.position.set(table.inner.middle[0], table.inner.middle[1], 800);
-  camera.lookAt(new THREE.Vector3(table.inner.middle[0], table.inner.middle[1], 0));
+  camera.lookAt(new THREE.Vector3(whiteBall.position[0], whiteBall.position[1], 0));
 
   scene.add(camera);
 
+  // Controls
+
+  controls = new TrackballControls( camera );
+
+  controls.rotateSpeed = 1.0;
+  controls.zoomSpeed = 1.2;
+  controls.panSpeed = 0.8;
+  controls.noZoom = false;
+  controls.noPan = false;
+  controls.staticMoving = true;
+  controls.dynamicDampingFactor = 0.3;
+  controls.keys = [ 65, 83, 68 ];
+  controls.addEventListener( 'change', renderScene );
+
   // Table
 
-  const clothTexture = new THREE.TextureLoader().load(cloth);
-  clothTexture.wrapS = THREE.RepeatWrapping;
-  clothTexture.wrapT = THREE.RepeatWrapping;
-  clothTexture.flipY = false;
-  clothTexture.minFilter = THREE.LinearFilter;
-  clothTexture.magFilter = THREE.LinearFilter;
-  clothTexture.generateMipmaps = false;
-  clothTexture.repeat.x = 4;
-  clothTexture.repeat.y = 2;
+  let loader = new FBXLoader();
+  let tableTexture = new THREE.TextureLoader().load(jeroenTexture, onLoad, onProgress, onError);
+  let tableMaterial = new THREE.MeshLambertMaterial({map: tableTexture});
+  loader.load( jeroenTable, function ( object ) {
 
-  const tableMaterial = new THREE.MeshLambertMaterial({
-    color: 'green',
-    map: clothTexture,
+    object.traverse( function ( child ) {
+        if ( child.isMesh ) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+
+            child.material = tableMaterial;
+            child.material.needsUpdate = true;
+        }
+    } );
+
+    object.translateZ(-310);
+    object.translateX(590);
+    object.translateY(425);
+
+    object.rotateX(Math.PI / 2);
+    object.rotateY(Math.PI / 2);
+
+    //object.rotation.set(new THREE.Vector3( 1, 1, 1));
+    //object.rotateOnWorldAxis(new THREE.Vector3(1,0,0), Math.Pi / 2 );
+    object.scale.set( 4, 4, 4 );
+
+    scene.add(object);
   });
 
-  const geometry = new THREE.PlaneGeometry(table.inner.width, table.inner.height);
-  const tablePlane = new THREE.Mesh(geometry, tableMaterial);
-  tablePlane.position.set(...table.inner.middle, 0);
-  tablePlane.receiveShadow = true;
-  scene.add(tablePlane);
+//   const clothTexture = new THREE.TextureLoader().load(cloth);
+//   clothTexture.wrapS = THREE.RepeatWrapping;
+//   clothTexture.wrapT = THREE.RepeatWrapping;
+//   clothTexture.flipY = false;
+//   clothTexture.minFilter = THREE.LinearFilter;
+//   clothTexture.magFilter = THREE.LinearFilter;
+//   clothTexture.generateMipmaps = false;
+//   clothTexture.repeat.x = 4;
+//   clothTexture.repeat.y = 2;
 
-  scene.add(new THREE.AxesHelper(5));
+//   const tableMaterial = new THREE.MeshLambertMaterial({
+//     color: 'green',
+//     map: clothTexture,
+//   });
+
+//   const geometry = new THREE.PlaneGeometry(table.inner.width, table.inner.height);
+//   const tablePlane = new THREE.Mesh(geometry, tableMaterial);
+//   tablePlane.position.set(...table.inner.middle, 0);
+//   tablePlane.receiveShadow = true;
+//   scene.add(tablePlane);
 
   const specularShininess = 2 ** 8;
 
@@ -328,15 +390,17 @@ function handleClick() {
   // calculate objects intersecting the picking ray
   const intersects = raycaster.intersectObjects(scene.children);
 
-  const click = vec2.fromValues(intersects[0].point.x, intersects[0].point.y);
+  if (intersects[0]) {
+    const click = vec2.fromValues(intersects[0].point.x, intersects[0].point.y);
 
-  const ball = vec2.fromValues(whiteBall.x, whiteBall.y);
+    const ball = vec2.fromValues(whiteBall.x, whiteBall.y);
 
-  const direction = vec2.sub(vec2.create(), ball, click);
-  vec2.normalize(direction, direction);
+    const direction = vec2.sub(vec2.create(), ball, click);
+    vec2.normalize(direction, direction);
 
-  whiteBall.power = settings.power;
-  whiteBall.direction = direction;
+    whiteBall.power = settings.power;
+    whiteBall.direction = direction;
+  }
 }
 
 function ballVSWall(ball, wall) {
@@ -580,6 +644,8 @@ function updateBalls() {
 
 function update() {
   updateBalls();
+
+  controls.update();
 
   renderScene();
   window.requestAnimationFrame(update);
