@@ -22,5 +22,6 @@ module.exports = {
     "no-param-reassign": 0,
     "no-restricted-syntax": 0,
     "react/jsx-filename-extension": 0,
+    "max-len": 0,
   },
 };
