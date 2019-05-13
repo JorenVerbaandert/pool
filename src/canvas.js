@@ -45,8 +45,8 @@ let line = null;
 let controls = null;
 
 const table = {};
-const whiteBall = {};
-const balls = [];
+let whiteBall = {};
+let balls = [];
 const textures = [
   ballCue,
   ball1,
@@ -227,27 +227,6 @@ function createScene() {
     scene.add(object);
   });
 
-  //   const clothTexture = new THREE.TextureLoader().load(cloth);
-  //   clothTexture.wrapS = THREE.RepeatWrapping;
-  //   clothTexture.wrapT = THREE.RepeatWrapping;
-  //   clothTexture.flipY = false;
-  //   clothTexture.minFilter = THREE.LinearFilter;
-  //   clothTexture.magFilter = THREE.LinearFilter;
-  //   clothTexture.generateMipmaps = false;
-  //   clothTexture.repeat.x = 4;
-  //   clothTexture.repeat.y = 2;
-
-  //   const tableMaterial = new THREE.MeshLambertMaterial({
-  //     color: 'green',
-  //     map: clothTexture,
-  //   });
-
-  //   const geometry = new THREE.PlaneGeometry(table.inner.width, table.inner.height);
-  //   const tablePlane = new THREE.Mesh(geometry, tableMaterial);
-  //   tablePlane.position.set(...table.inner.middle, 0);
-  //   tablePlane.receiveShadow = true;
-  //   scene.add(tablePlane);
-
   const specularShininess = 2 ** 8;
 
   const textureEquirec = new THREE.TextureLoader().load(env);
@@ -282,7 +261,8 @@ function createScene() {
 
 function setupCanvas() {
   setTable();
-  createBalls(table);
+  balls = createBalls(table);
+  [whiteBall] = balls;
   createScene();
 }
 
