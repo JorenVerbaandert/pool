@@ -18,11 +18,11 @@ import ball14 from './images/Ball14.jpg';
 import ball15 from './images/Ball15.jpg';
 import ballCue from './images/BallCue.jpg';
 import jeroenTable from './Pooltable.fbx';
-import cloth from './images/cloth.jpg';
 import env from './images/garage_1k.jpg';
 import TrackballControls from './trackBallControls';
 import FBXLoader from './FBXLoader';
 import jeroenTexture from './PoolTable_Textures.png';
+import { createBalls } from './ball';
 
 window.vec2 = vec2;
 
@@ -45,8 +45,8 @@ let line = null;
 let controls = null;
 
 const table = {};
-let whiteBall = {};
-let balls = [];
+const whiteBall = {};
+const balls = [];
 const textures = [
   ballCue,
   ball1,
@@ -89,6 +89,10 @@ function setTable() {
   table.drawInner = [inner.x, inner.y, inner.width, inner.height];
 }
 
+function renderScene() {
+  render.render(scene, camera);
+}
+
 function updateLine(origin, target) {
   const positions = line.geometry.attributes.position.array;
   positions[0] = origin.x;
@@ -104,7 +108,7 @@ function createScene() {
   render = new THREE.WebGLRenderer({ canvas, antialias: true });
 
   render.setClearColor(0x000000, 1);
-  //render.setClearColor( 0xffffff, 1 );
+  // render.setClearColor( 0xffffff, 1 );
   render.setSize(width, height);
   render.shadowMap.enabled = true;
   render.shadowMapSoft = true;
@@ -113,11 +117,10 @@ function createScene() {
   const aspect = width / height;
 
   // intersection plane
-  var geometry = new THREE.PlaneGeometry( 2000, 2000, 2 );
-  var material = new THREE.MeshBasicMaterial( {
-    color: 0x248f24, alphaTest: 0, visible: false});
-  var intersectionPlane = new THREE.Mesh( geometry, material );
-  scene.add( intersectionPlane );
+  const geometry = new THREE.PlaneGeometry(2000, 2000, 2);
+  const material = new THREE.MeshBasicMaterial({ color: 0x248f24, alphaTest: 0, visible: false });
+  const intersectionPlane = new THREE.Mesh(geometry, material);
+  scene.add(intersectionPlane);
 
   // Lights
 
@@ -139,15 +142,15 @@ function createScene() {
   const light = new THREE.AmbientLight(0x808080);
   scene.add(light);
 
-  function onLoad(m){
+  function onLoad(m) {
     console.log(m);
   }
 
-  function onError(error){
-      console.log(error);
+  function onError(error) {
+    console.log(error);
   }
 
-  function onProgress(p){
+  function onProgress(p) {
     console.log(p);
   }
 
@@ -171,8 +174,8 @@ function createScene() {
 
   // Camera
 
-//   camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 1000 );
-//   camera.position.z = 500;
+  //   camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 1000 );
+  //   camera.position.z = 500;
 
   camera = new THREE.PerspectiveCamera(45, aspect, 1, 10000);
   camera.position.set(table.inner.middle[0], table.inner.middle[1], 800);
@@ -182,7 +185,7 @@ function createScene() {
 
   // Controls
 
-  controls = new TrackballControls( camera );
+  controls = new TrackballControls(camera);
 
   controls.rotateSpeed = 1.0;
   controls.zoomSpeed = 1.2;
@@ -191,25 +194,24 @@ function createScene() {
   controls.noPan = false;
   controls.staticMoving = true;
   controls.dynamicDampingFactor = 0.3;
-  controls.keys = [ 65, 83, 68 ];
-  controls.addEventListener( 'change', renderScene );
+  controls.keys = [65, 83, 68];
+  controls.addEventListener('change', renderScene);
 
   // Table
 
-  let loader = new FBXLoader();
-  let tableTexture = new THREE.TextureLoader().load(jeroenTexture, onLoad, onProgress, onError);
-  let tableMaterial = new THREE.MeshLambertMaterial({map: tableTexture});
-  loader.load( jeroenTable, function ( object ) {
+  const loader = new FBXLoader();
+  const tableTexture = new THREE.TextureLoader().load(jeroenTexture, onLoad, onProgress, onError);
+  const tableMaterial = new THREE.MeshLambertMaterial({ map: tableTexture });
+  loader.load(jeroenTable, (object) => {
+    object.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
 
-    object.traverse( function ( child ) {
-        if ( child.isMesh ) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-
-            child.material = tableMaterial;
-            child.material.needsUpdate = true;
-        }
-    } );
+        child.material = tableMaterial;
+        child.material.needsUpdate = true;
+      }
+    });
 
     object.translateZ(-310);
     object.translateX(590);
@@ -218,33 +220,33 @@ function createScene() {
     object.rotateX(Math.PI / 2);
     object.rotateY(Math.PI / 2);
 
-    //object.rotation.set(new THREE.Vector3( 1, 1, 1));
-    //object.rotateOnWorldAxis(new THREE.Vector3(1,0,0), Math.Pi / 2 );
-    object.scale.set( 4, 4, 4 );
+    // object.rotation.set(new THREE.Vector3( 1, 1, 1));
+    // object.rotateOnWorldAxis(new THREE.Vector3(1,0,0), Math.Pi / 2 );
+    object.scale.set(4, 4, 4);
 
     scene.add(object);
   });
 
-//   const clothTexture = new THREE.TextureLoader().load(cloth);
-//   clothTexture.wrapS = THREE.RepeatWrapping;
-//   clothTexture.wrapT = THREE.RepeatWrapping;
-//   clothTexture.flipY = false;
-//   clothTexture.minFilter = THREE.LinearFilter;
-//   clothTexture.magFilter = THREE.LinearFilter;
-//   clothTexture.generateMipmaps = false;
-//   clothTexture.repeat.x = 4;
-//   clothTexture.repeat.y = 2;
+  //   const clothTexture = new THREE.TextureLoader().load(cloth);
+  //   clothTexture.wrapS = THREE.RepeatWrapping;
+  //   clothTexture.wrapT = THREE.RepeatWrapping;
+  //   clothTexture.flipY = false;
+  //   clothTexture.minFilter = THREE.LinearFilter;
+  //   clothTexture.magFilter = THREE.LinearFilter;
+  //   clothTexture.generateMipmaps = false;
+  //   clothTexture.repeat.x = 4;
+  //   clothTexture.repeat.y = 2;
 
-//   const tableMaterial = new THREE.MeshLambertMaterial({
-//     color: 'green',
-//     map: clothTexture,
-//   });
+  //   const tableMaterial = new THREE.MeshLambertMaterial({
+  //     color: 'green',
+  //     map: clothTexture,
+  //   });
 
-//   const geometry = new THREE.PlaneGeometry(table.inner.width, table.inner.height);
-//   const tablePlane = new THREE.Mesh(geometry, tableMaterial);
-//   tablePlane.position.set(...table.inner.middle, 0);
-//   tablePlane.receiveShadow = true;
-//   scene.add(tablePlane);
+  //   const geometry = new THREE.PlaneGeometry(table.inner.width, table.inner.height);
+  //   const tablePlane = new THREE.Mesh(geometry, tableMaterial);
+  //   tablePlane.position.set(...table.inner.middle, 0);
+  //   tablePlane.receiveShadow = true;
+  //   scene.add(tablePlane);
 
   const specularShininess = 2 ** 8;
 
@@ -258,7 +260,7 @@ function createScene() {
   balls.map((ball) => {
     const ballGeometry = new THREE.SphereGeometry(settings.ballR, 32, 16);
 
-    const material = new THREE.MeshPhongMaterial({
+    const ballMaterial = new THREE.MeshPhongMaterial({
       specular: 'white',
       reflectivity: 0.25,
       shininess: specularShininess,
@@ -267,7 +269,7 @@ function createScene() {
       combine: THREE.AddOperation,
     });
 
-    const sphere = new THREE.Mesh(ballGeometry, material);
+    const sphere = new THREE.Mesh(ballGeometry, ballMaterial);
     sphere.position.set(ball.x, ball.y, settings.ballR);
     sphere.castShadow = true;
     sphere.receiveShadow = true;
@@ -278,76 +280,9 @@ function createScene() {
   });
 }
 
-function createBall(color, number, col = 0, row = 0, half = false) {
-  const x = col * 27;
-  const y = row * 27;
-
-  const ball = {
-    position: vec2.fromValues(
-      table.inner.x + 3 * (table.inner.width / 4) + x,
-      table.inner.y + (table.inner.height / 2) + y,
-    ),
-    get x() {
-      return this.position[0];
-    },
-    get y() {
-      return this.position[1];
-    },
-    color,
-    half,
-    number,
-  };
-
-  balls.push(ball);
-  return ball;
-}
-
-function createBalls() {
-  balls = [];
-
-  whiteBall = {
-    position: vec2.fromValues(
-      table.inner.x + (table.inner.width / 4),
-      table.inner.y + (table.inner.height / 2),
-    ),
-    get x() {
-      return this.position[0];
-    },
-    get y() {
-      return this.position[1];
-    },
-    color: 'white',
-  };
-  balls.push(whiteBall);
-
-  createBall('black', 8);
-  createBall('yellow', 1, -2);
-  createBall('yellow', 9, -1, 0.5, true);
-  createBall('green', 14, -1, -0.5, true);
-  createBall('blue', 2, 0, -1);
-  createBall('green', 6, 0, 1);
-  createBall('orange', 13, 1, -1.5, true);
-  createBall('darkred', 15, 1, -0.5, true);
-  createBall('darkred', 7, 1, 0.5);
-  createBall('blue', 10, 1, 1.5, true);
-
-  createBall('orange', 5, 2, -2);
-  createBall('purple', 12, 2, -1, true);
-  createBall('purple', 4, 2, 0);
-  createBall('red', 11, 2, 1, true);
-  createBall('red', 3, 2, 2);
-}
-
 function setupCanvas() {
   setTable();
-  createBalls();
-  createScene();
-}
-
-function setupTest() {
-  setTable();
-  balls.length = 1;
-  createBall('blue', 10, 1, 1.5, true);
+  createBalls(table);
   createScene();
 }
 
@@ -638,10 +573,6 @@ function updateBall(ball) {
   }
 }
 
-function renderScene() {
-  render.render(scene, camera);
-}
-
 function updateBalls() {
   balls.forEach(updateBall);
   balls.forEach((ball) => {
@@ -682,7 +613,6 @@ export default function Canvas() {
         onMouseMove={handleMove}
       />
       <button type="button" onClick={setupCanvas}>reset!</button>
-      <button type="button" onClick={setupTest}>test!</button>
     </div>
   );
 }
