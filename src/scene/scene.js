@@ -144,12 +144,12 @@ export function createScene(
   directionalLight.shadow.camera.right = 600;
   directionalLight.shadow.camera.top = 600;
   directionalLight.shadow.camera.bottom = -600;
-  directionalLight.shadow.mapSize.width = 1024;
-  directionalLight.shadow.mapSize.height = 1024;
+  directionalLight.shadow.mapSize.width = 2048;
+  directionalLight.shadow.mapSize.height = 2048;
 
   scene.add(directionalLight);
 
-  const light = new THREE.AmbientLight(0x808080);
+  const light = new THREE.AmbientLight(0x404040);
   scene.add(light);
 
   // line
@@ -199,8 +199,6 @@ export function createScene(
 
   loadTable(scene);
 
-  const specularShininess = 2 ** 8;
-
   const textureEquirec = new THREE.TextureLoader().load(env);
   textureEquirec.mapping = THREE.EquirectangularReflectionMapping;
   textureEquirec.magFilter = THREE.LinearFilter;
@@ -211,13 +209,14 @@ export function createScene(
   balls.forEach((ball) => {
     const ballGeometry = new THREE.SphereGeometry(settings.ballR, 32, 16);
 
-    const ballMaterial = new THREE.MeshPhongMaterial({
-      specular: 'white',
-      reflectivity: 0.25,
-      shininess: specularShininess,
+    const ballMaterial = new THREE.MeshPhysicalMaterial({
+      reflectivity: 0.2,
+      roughness: 0.12,
+      reflectivity: 0.9,
+      metalness: 0,
       map: new THREE.TextureLoader().load(textures[ball.number || 0]),
       envMap: textureEquirec,
-      combine: THREE.AddOperation,
+      color: new THREE.Color(0.8, 0.8, 0.6) 
     });
 
     const sphere = new THREE.Mesh(ballGeometry, ballMaterial);
