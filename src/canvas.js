@@ -1,26 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import * as vec2 from 'gl-vec2';
 import * as THREE from 'three';
-import ball1 from './images/Ball1.jpg';
-import ball2 from './images/Ball2.jpg';
-import ball3 from './images/Ball3.jpg';
-import ball4 from './images/Ball4.jpg';
-import ball5 from './images/Ball5.jpg';
-import ball6 from './images/Ball6.jpg';
-import ball7 from './images/Ball7.jpg';
-import ball8 from './images/Ball8.jpg';
-import ball9 from './images/Ball9.jpg';
-import ball10 from './images/Ball10.jpg';
-import ball11 from './images/Ball11.jpg';
-import ball12 from './images/Ball12.jpg';
-import ball13 from './images/Ball13.jpg';
-import ball14 from './images/Ball14.jpg';
-import ball15 from './images/Ball15.jpg';
-import ballCue from './images/BallCue.jpg';
-import cloth from './images/cloth.jpg';
-import env from './images/garage_1k.jpg';
-
-window.vec2 = vec2;
+import { createBalls } from './ball';
+import {
+  handleMove, createScene, renderAll, getIntersectsWithPlane,
+} from './scene/scene';
 
 const height = 740;
 const width = 1140;
@@ -32,37 +16,10 @@ const settings = {
 };
 
 let canvas = null;
-let render = null;
-const ctx = null;
-let scene = null;
-let camera = null;
-let linegeometry = null;
-let line = null;
 
 const table = {};
 let whiteBall = {};
 let balls = [];
-const textures = [
-  ballCue,
-  ball1,
-  ball2,
-  ball3,
-  ball4,
-  ball5,
-  ball6,
-  ball7,
-  ball8,
-  ball9,
-  ball10,
-  ball11,
-  ball12,
-  ball13,
-  ball14,
-  ball15,
-];
-
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
 
 function setTable() {
   const outer = {
@@ -84,232 +41,14 @@ function setTable() {
   table.drawInner = [inner.x, inner.y, inner.width, inner.height];
 }
 
-function updateLine(origin, target) {
-  const positions = line.geometry.attributes.position.array;
-  positions[0] = origin.x;
-  positions[1] = origin.y;
-  positions[2] = settings.ballR;
-  positions[3] = target.x;
-  positions[4] = target.y;
-  positions[5] = settings.ballR;
-  line.geometry.attributes.position.needsUpdate = true;
-}
-
-function createScene() {
-  render = new THREE.WebGLRenderer({ canvas, antialias: true });
-
-  render.setClearColor(0x000000, 1);
-  render.setSize(width, height);
-  render.shadowMapEnabled = true;
-  render.shadowMapSoft = true;
-
-  scene = new THREE.Scene();
-  const aspect = width / height;
-
-  // Lights
-
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-  directionalLight.position.set(1500, 400, 1000);
-  directionalLight.shadowCameraNear = 3;
-  directionalLight.shadowCameraFar = 10000;
-  directionalLight.shadowCameraFov = 45;
-  directionalLight.castShadow = true;
-  directionalLight.shadowCameraLeft = -600;
-  directionalLight.shadowCameraRight = 600;
-  directionalLight.shadowCameraTop = 600;
-  directionalLight.shadowCameraBottom = -600;
-  directionalLight.shadow.mapSize.width = 1024;
-  directionalLight.shadow.mapSize.height = 1024;
-
-  scene.add(directionalLight);
-
-  const light = new THREE.AmbientLight(0x808080);
-  scene.add(light);
-
-  // line
-
-  linegeometry = new THREE.BufferGeometry();
-
-  const lineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
-  const positions = new Float32Array(2 * 3);
-  linegeometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
-  linegeometry.setDrawRange(0, 2);
-
-  line = new THREE.Line(linegeometry, lineMaterial);
-
-  updateLine(
-    new THREE.Vector3(whiteBall.position[0], whiteBall.position[1], 1),
-    new THREE.Vector3(0, 0, 1),
-  );
-
-  scene.add(line);
-
-  // Camera
-
-  camera = new THREE.PerspectiveCamera(45, aspect, 1, 10000);
-  camera.position.set(table.inner.middle[0], table.inner.middle[1], 800);
-  camera.lookAt(new THREE.Vector3(table.inner.middle[0], table.inner.middle[1], 0));
-
-  scene.add(camera);
-
-  // Table
-
-  const clothTexture = new THREE.TextureLoader().load(cloth);
-  clothTexture.wrapS = THREE.RepeatWrapping;
-  clothTexture.wrapT = THREE.RepeatWrapping;
-  clothTexture.flipY = false;
-  clothTexture.minFilter = THREE.LinearFilter;
-  clothTexture.magFilter = THREE.LinearFilter;
-  clothTexture.generateMipmaps = false;
-  clothTexture.repeat.x = 4;
-  clothTexture.repeat.y = 2;
-
-  const tableMaterial = new THREE.MeshLambertMaterial({
-    color: 'green',
-    map: clothTexture,
-  });
-
-  const geometry = new THREE.PlaneGeometry(table.inner.width, table.inner.height);
-  const tablePlane = new THREE.Mesh(geometry, tableMaterial);
-  tablePlane.position.set(...table.inner.middle, 0);
-  tablePlane.receiveShadow = true;
-  scene.add(tablePlane);
-
-  scene.add(new THREE.AxesHelper(5));
-
-  const specularShininess = 2 ** 8;
-
-  const textureEquirec = new THREE.TextureLoader().load(env);
-  textureEquirec.mapping = THREE.EquirectangularReflectionMapping;
-  textureEquirec.magFilter = THREE.LinearFilter;
-  textureEquirec.minFilter = THREE.LinearMipMapLinearFilter;
-  textureEquirec.encoding = THREE.sRGBEncoding;
-  textureEquirec.format = THREE.RGBFormat;
-
-  balls.map((ball) => {
-    const ballGeometry = new THREE.SphereGeometry(settings.ballR, 32, 16);
-
-    const material = new THREE.MeshPhongMaterial({
-      specular: 'white',
-      reflectivity: 0.25,
-      shininess: specularShininess,
-      map: new THREE.TextureLoader().load(textures[ball.number || 0]),
-      envMap: textureEquirec,
-      combine: THREE.AddOperation,
-    });
-
-    const sphere = new THREE.Mesh(ballGeometry, material);
-    sphere.position.set(ball.x, ball.y, settings.ballR);
-    sphere.castShadow = true;
-    sphere.receiveShadow = true;
-    scene.add(sphere);
-
-    ball.sphere = sphere;
-    return sphere;
-  });
-}
-
-function createBall(color, number, col = 0, row = 0, half = false) {
-  const x = col * 27;
-  const y = row * 27;
-
-  const ball = {
-    position: vec2.fromValues(
-      table.inner.x + 3 * (table.inner.width / 4) + x,
-      table.inner.y + (table.inner.height / 2) + y,
-    ),
-    get x() {
-      return this.position[0];
-    },
-    get y() {
-      return this.position[1];
-    },
-    color,
-    half,
-    number,
-  };
-
-  balls.push(ball);
-  return ball;
-}
-
-function createBalls() {
-  balls = [];
-
-  whiteBall = {
-    position: vec2.fromValues(
-      table.inner.x + (table.inner.width / 4),
-      table.inner.y + (table.inner.height / 2),
-    ),
-    get x() {
-      return this.position[0];
-    },
-    get y() {
-      return this.position[1];
-    },
-    color: 'white',
-  };
-  balls.push(whiteBall);
-
-  createBall('black', 8);
-  createBall('yellow', 1, -2);
-  createBall('yellow', 9, -1, 0.5, true);
-  createBall('green', 14, -1, -0.5, true);
-  createBall('blue', 2, 0, -1);
-  createBall('green', 6, 0, 1);
-  createBall('orange', 13, 1, -1.5, true);
-  createBall('darkred', 15, 1, -0.5, true);
-  createBall('darkred', 7, 1, 0.5);
-  createBall('blue', 10, 1, 1.5, true);
-
-  createBall('orange', 5, 2, -2);
-  createBall('purple', 12, 2, -1, true);
-  createBall('purple', 4, 2, 0);
-  createBall('red', 11, 2, 1, true);
-  createBall('red', 3, 2, 2);
-}
-
 function setupCanvas() {
   setTable();
-  createBalls();
-  createScene();
+  balls = createBalls(table);
+  [whiteBall] = balls;
+  createScene(balls, canvas, width, height, settings, table, whiteBall);
 }
 
-function setupTest() {
-  setTable();
-  balls.length = 1;
-  createBall('blue', 10, 1, 1.5, true);
-  createScene();
-}
-
-function updatemouse(event) {
-  if (!canvas) {
-    return;
-  }
-  const rect = canvas.getBoundingClientRect();
-  mouse.x = ((event.clientX - rect.x) / rect.width) * 2 - 1;
-  mouse.y = -((event.clientY - rect.y) / rect.height) * 2 + 1;
-}
-
-function handleMove(event) {
-  updatemouse(event);
-
-  if (!scene) {
-    return;
-  }
-
-  raycaster.setFromCamera(mouse, camera);
-
-  // calculate objects intersecting the picking ray
-  const intersects = raycaster.intersectObjects(scene.children);
-
-  if (intersects[0]) {
-    updateLine(new THREE.Vector3(intersects[0].point.x, intersects[0].point.y, settings.ballR),
-      new THREE.Vector3(whiteBall.position[0], whiteBall.position[1], settings.ballR));
-  }
-}
-
-function rotateBall(ball, power = ball.remainingPower || ball.power) {
+function rotateBall(ball, power = ball.getPower()) {
   if (!ball.direction) {
     return;
   }
@@ -319,24 +58,44 @@ function rotateBall(ball, power = ball.remainingPower || ball.power) {
 }
 
 function handleClick() {
-  if (balls.some(ball => ball.power)) {
+  if (balls.some(ball => ball.getPower())) {
     return;
   }
 
-  raycaster.setFromCamera(mouse, camera);
+  const intersect = getIntersectsWithPlane();
 
-  // calculate objects intersecting the picking ray
-  const intersects = raycaster.intersectObjects(scene.children);
+  if (intersect) {
+    const { x, y } = intersect;
+    const click = vec2.fromValues(x, y);
 
-  const click = vec2.fromValues(intersects[0].point.x, intersects[0].point.y);
+    const ball = vec2.fromValues(whiteBall.x, whiteBall.y);
 
-  const ball = vec2.fromValues(whiteBall.x, whiteBall.y);
+    const direction = vec2.sub(vec2.create(), ball, click);
+    vec2.normalize(direction, direction);
 
-  const direction = vec2.sub(vec2.create(), ball, click);
-  vec2.normalize(direction, direction);
+    whiteBall.power = settings.power;
+    whiteBall.direction = direction;
+  }
+}
 
-  whiteBall.power = settings.power;
-  whiteBall.direction = direction;
+function updateWallBounce(ball, wall, axis, addBallR, xAxis = (axis === 'x' || axis === 'x2')) {
+  const N = vec2.fromValues(wall[axis] - ball[xAxis ? 'x' : 'y'] + addBallR, 0);
+
+  const V = vec2.scale(vec2.create(), ball.direction, ball.getPower());
+
+  const index = xAxis ? 0 : 1;
+  const a = N[index] / V[index];
+
+  const coll = vec2.scale(vec2.create(), V, a);
+
+  rotateBall(ball, a * ball.getPower());
+  ball.remainingPower = (1 - a) * ball.getPower();
+  ball.position = vec2.add(ball.position, ball.position, coll);
+
+  const mul = xAxis ? [-1, 1] : [1, -1];
+
+  ball.direction = vec2.mul(vec2.create(), ball.direction, mul);
+  return true;
 }
 
 function ballVSWall(ball, wall) {
@@ -344,68 +103,20 @@ function ballVSWall(ball, wall) {
     vec2.create(),
     ball.position,
     ball.direction,
-    ball.remainingPower || ball.power,
+    ball.getPower(),
   );
 
   if (newPos[0] - settings.ballR < wall.x) {
-    const N = vec2.fromValues(wall.x - ball.x + settings.ballR, 0);
-
-    const V = vec2.scale(vec2.create(), ball.direction, ball.power);
-
-    const a = N[0] / V[0];
-
-    const coll = vec2.scale(vec2.create(), V, a);
-
-    ball.remainingPower = (1 - a) * ball.power;
-    rotateBall(ball, a * ball.power);
-    ball.position = vec2.add(ball.position, ball.position, coll);
-    ball.direction = vec2.mul(vec2.create(), ball.direction, [-1, 1]);
-    return true;
+    return updateWallBounce(ball, wall, 'x', settings.ballR);
   }
   if (newPos[0] + settings.ballR > wall.x2) {
-    const N = vec2.fromValues(wall.x2 - ball.x - settings.ballR, 0);
-
-    const V = vec2.scale(vec2.create(), ball.direction, ball.power);
-
-    const a = N[0] / V[0];
-
-    const coll = vec2.scale(vec2.create(), V, a);
-
-    ball.remainingPower = (1 - a) * ball.power;
-    rotateBall(ball, a * ball.power);
-    ball.position = vec2.add(ball.position, ball.position, coll);
-    ball.direction = vec2.mul(vec2.create(), ball.direction, [-1, 1]);
-    return true;
+    return updateWallBounce(ball, wall, 'x2', -settings.ballR);
   }
   if (newPos[1] - settings.ballR < wall.y) {
-    const N = vec2.fromValues(0, wall.y - ball.y + settings.ballR);
-
-    const V = vec2.scale(vec2.create(), ball.direction, ball.power);
-
-    const a = N[1] / V[1];
-
-    const coll = vec2.scale(vec2.create(), V, a);
-
-    ball.remainingPower = (1 - a) * ball.power;
-    rotateBall(ball, a * ball.power);
-    ball.position = vec2.add(ball.position, ball.position, coll);
-    ball.direction = vec2.mul(vec2.create(), ball.direction, [1, -1]);
-    return true;
+    return updateWallBounce(ball, wall, 'y', settings.ballR);
   }
   if (newPos[1] + settings.ballR > wall.y2) {
-    const N = vec2.fromValues(0, wall.y2 - ball.y - settings.ballR);
-
-    const V = vec2.scale(vec2.create(), ball.direction, ball.power);
-
-    const a = N[1] / V[1];
-
-    const coll = vec2.scale(vec2.create(), V, a);
-
-    ball.remainingPower = (1 - a) * ball.power;
-    rotateBall(ball, a * ball.power);
-    ball.position = vec2.add(ball.position, ball.position, coll);
-    ball.direction = vec2.mul(vec2.create(), ball.direction, [1, -1]);
-    return true;
+    return updateWallBounce(ball, wall, 'y2', -settings.ballR);
   }
   return false;
 }
@@ -416,7 +127,12 @@ function ballVSball(ballA, ballB) {
   // their radii, there's no way they can hit.
   const A = ballA.position;
   const B = ballB.position;
-  const movevec = vec2.scale(vec2.create(), ballA.direction, ballA.power);
+  let movevec = vec2.scale(vec2.create(), ballA.direction, ballA.getPower());
+
+  if (ballB.getPower()) {
+    const movevecB = vec2.scale(vec2.create(), ballB.direction, ballB.getPower());
+    movevec = vec2.sub(vec2.create(), movevec, movevecB);
+  }
 
   let dist = vec2.dist(A, B);
   const sumRadii = (settings.ballR + settings.ballR);
@@ -504,11 +220,14 @@ function ballVSball(ballA, ballB) {
   ballB.power = ballA.power * percentB;
   ballA.power *= percentA;
 
-  ballA.remainingPower = ballA.power * (remainder / movevecLen);
-  ballB.remainingPower = ballB.power * (remainder / movevecLen);
+  const ballAOldPower = ballA.getPower() * (remainder / movevecLen);
+  const ballBOldPower = ballB.getPower() * (remainder / movevecLen);
 
-  rotateBall(ballA, ballA.power - ballA.remainingPower);
-  rotateBall(ballB, ballB.power - ballB.remainingPower);
+  rotateBall(ballA, ballA.getPower() - ballAOldPower);
+  rotateBall(ballB, ballB.getPower() - ballBOldPower);
+
+  ballA.remainingPower = ballAOldPower;
+  ballB.remainingPower = ballBOldPower;
 
   ballA.direction = angleA;
   ballB.direction = angleN;
@@ -519,7 +238,7 @@ function ballVSball(ballA, ballB) {
 function checkCollisions(ball) {
   const oldPos = ball.position;
   const dir = ball.direction;
-  const power = ball.remainingPower || ball.power;
+  const power = ball.getPower();
   const ballPos = vec2.create();
 
   for (const otherBall of balls) {
@@ -567,10 +286,6 @@ function updateBall(ball) {
   }
 }
 
-function renderScene() {
-  render.render(scene, camera);
-}
-
 function updateBalls() {
   balls.forEach(updateBall);
   balls.forEach((ball) => {
@@ -581,7 +296,7 @@ function updateBalls() {
 function update() {
   updateBalls();
 
-  renderScene();
+  renderAll();
   window.requestAnimationFrame(update);
 }
 
@@ -589,9 +304,6 @@ export default function Canvas() {
   const canvasRef = useRef();
 
   useEffect(() => {
-    if (ctx) {
-      return;
-    }
     canvas = canvasRef.current;
 
     setupCanvas();
@@ -609,7 +321,6 @@ export default function Canvas() {
         onMouseMove={handleMove}
       />
       <button type="button" onClick={setupCanvas}>reset!</button>
-      <button type="button" onClick={setupTest}>test!</button>
     </div>
   );
 }
