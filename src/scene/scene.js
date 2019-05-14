@@ -134,22 +134,36 @@ export function createScene(
 
   // Lights
 
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-  directionalLight.position.set(1500, 400, 1000);
-  directionalLight.shadow.camera.near = 3;
-  directionalLight.shadow.camera.far = 10000;
-  directionalLight.shadow.camera.fov = 45;
-  directionalLight.castShadow = true;
-  directionalLight.shadow.camera.left = -600;
-  directionalLight.shadow.camera.right = 600;
-  directionalLight.shadow.camera.top = 600;
-  directionalLight.shadow.camera.bottom = -600;
-  directionalLight.shadow.mapSize.width = 2048;
-  directionalLight.shadow.mapSize.height = 2048;
+  var spotLight = new THREE.SpotLight( 0xffffff );
+  spotLight.position.set( table.inner.middle[0], table.inner.middle[1], 1100 );
 
-  scene.add(directionalLight);
+  spotLight.castShadow = true;
 
-  const light = new THREE.AmbientLight(0x404040);
+  spotLight.shadow.mapSize.width = 4048;
+  spotLight.shadow.mapSize.height = 4048;
+
+  spotLight.shadow.camera.near = 10;
+  spotLight.shadow.camera.far = 4000;
+  spotLight.shadow.camera.fov = 55;
+
+  scene.add( spotLight );
+
+  // const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+  // directionalLight.position.set(1500, 400, 1000);
+  // directionalLight.shadow.camera.near = 3;
+  // directionalLight.shadow.camera.far = 10000;
+  // directionalLight.shadow.camera.fov = 45;
+  // directionalLight.castShadow = true;
+  // directionalLight.shadow.camera.left = -600;
+  // directionalLight.shadow.camera.right = 600;
+  // directionalLight.shadow.camera.top = 600;
+  // directionalLight.shadow.camera.bottom = -600;
+  // directionalLight.shadow.mapSize.width = 2048;
+  // directionalLight.shadow.mapSize.height = 2048;
+
+  // scene.add(directionalLight);
+
+  const light = new THREE.AmbientLight(0x505050);
   scene.add(light);
 
   // line
@@ -172,12 +186,10 @@ export function createScene(
 
   // Camera
 
-  //   camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 1000 );
-  //   camera.position.z = 500;
-
   camera = new THREE.PerspectiveCamera(45, aspect, 1, 10000);
-  camera.position.set(table.inner.middle[0], table.inner.middle[1], 800);
-  camera.lookAt(new THREE.Vector3(whiteBall.position[0], whiteBall.position[1], 0));
+  camera.position.set(table.inner.middle[0], table.inner.middle[1], 1000);
+  camera.lookAt(new THREE.Vector3(table.inner.middle[0], table.inner.middle[1], 0));
+  //camera.up.set(new THREE.Vector3(0,0,1));
 
   scene.add(camera);
 
@@ -210,7 +222,6 @@ export function createScene(
     const ballGeometry = new THREE.SphereGeometry(settings.ballR, 32, 16);
 
     const ballMaterial = new THREE.MeshPhysicalMaterial({
-      reflectivity: 0.2,
       roughness: 0.12,
       reflectivity: 0.9,
       metalness: 0,
@@ -227,6 +238,7 @@ export function createScene(
 
     ball.sphere = sphere;
   });
+  controls.target = new THREE.Vector3(...table.inner.middle, -200)
 
   return { balls, render };
 }
