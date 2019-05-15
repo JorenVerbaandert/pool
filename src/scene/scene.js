@@ -19,6 +19,8 @@ import ball14 from '../images/Ball14.jpg';
 import ball15 from '../images/Ball15.jpg';
 import ballCue from '../images/BallCue.jpg';
 
+import Physijs from '../physics/physi';
+
 const textures = [
   ballCue,
   ball1,
@@ -50,6 +52,11 @@ const settings = {};
 
 const mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
+
+let aap = Physijs();
+
+aap.scripts.worker = 'physijs_worker.js';
+aap.scripts.ammo = 'ammo.js';
 
 function updateLine(origin, target) {
   const positions = line.geometry.attributes.position.array;
@@ -100,6 +107,7 @@ export function handleMove(event) {
 }
 
 function renderScene() {
+  scene.simulate();
   render.render(scene, camera);
 }
 
@@ -123,7 +131,8 @@ export function createScene(
   render.shadowMap.enabled = true;
   render.shadowMapSoft = true;
 
-  scene = new THREE.Scene();
+  scene = new aap.Scene;
+  scene.setGravity (new THREE.Vector3( 0, 0, -20 ) );
   const aspect = width / height;
 
   // intersection plane
@@ -147,21 +156,6 @@ export function createScene(
   spotLight.shadow.camera.fov = 55;
 
   scene.add( spotLight );
-
-  // const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-  // directionalLight.position.set(1500, 400, 1000);
-  // directionalLight.shadow.camera.near = 3;
-  // directionalLight.shadow.camera.far = 10000;
-  // directionalLight.shadow.camera.fov = 45;
-  // directionalLight.castShadow = true;
-  // directionalLight.shadow.camera.left = -600;
-  // directionalLight.shadow.camera.right = 600;
-  // directionalLight.shadow.camera.top = 600;
-  // directionalLight.shadow.camera.bottom = -600;
-  // directionalLight.shadow.mapSize.width = 2048;
-  // directionalLight.shadow.mapSize.height = 2048;
-
-  // scene.add(directionalLight);
 
   const light = new THREE.AmbientLight(0x505050);
   scene.add(light);
@@ -189,7 +183,6 @@ export function createScene(
   camera = new THREE.PerspectiveCamera(45, aspect, 1, 10000);
   camera.position.set(table.inner.middle[0], table.inner.middle[1], 1000);
   camera.lookAt(new THREE.Vector3(table.inner.middle[0], table.inner.middle[1], 0));
-  //camera.up.set(new THREE.Vector3(0,0,1));
 
   scene.add(camera);
 
@@ -230,7 +223,7 @@ export function createScene(
       color: new THREE.Color(0.8, 0.8, 0.6) 
     });
 
-    const sphere = new THREE.Mesh(ballGeometry, ballMaterial);
+    let sphere = new aap.SphereMesh(ballGeometry, ballMaterial);
     sphere.position.set(ball.x, ball.y, settings.ballR);
     sphere.castShadow = true;
     sphere.receiveShadow = true;
