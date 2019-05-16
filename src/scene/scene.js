@@ -53,19 +53,19 @@ const settings = {};
 const mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 
-let aap = Physijs();
+let Physics = Physijs();
 
-aap.scripts.worker = 'physijs_worker.js';
-aap.scripts.ammo = 'ammo.js';
+Physics.scripts.worker = 'physijs_worker.js';
+Physics.scripts.ammo = 'ammo.js';
 
 function updateLine(origin, target) {
   const positions = line.geometry.attributes.position.array;
   positions[0] = origin.x;
-  positions[1] = origin.y;
-  positions[2] = settings.ballR;
+  positions[1] = settings.ballR;
+  positions[2] = origin.y;
   positions[3] = target.x;
-  positions[4] = target.y;
-  positions[5] = settings.ballR;
+  positions[4] = settings.ballR;
+  positions[5] = target.y;
   line.geometry.attributes.position.needsUpdate = true;
 }
 
@@ -101,8 +101,8 @@ export function handleMove(event) {
   const intersects = raycaster.intersectObjects(scene.children);
 
   if (intersects[0]) {
-    updateLine(new THREE.Vector3(intersects[0].point.x, intersects[0].point.y, settings.ballR),
-      new THREE.Vector3(whiteBall.position[0], whiteBall.position[1], settings.ballR));
+    updateLine(new THREE.Vector3(intersects[0].point.x, settings.ballR, intersects[0].point.z),
+      new THREE.Vector3(whiteBall.position[0], settings.ballR, whiteBall.position[1]));
   }
 }
 
@@ -131,20 +131,28 @@ export function createScene(
   render.shadowMap.enabled = true;
   render.shadowMapSoft = true;
 
-  scene = new aap.Scene;
-  scene.setGravity (new THREE.Vector3( 0, 0, -20 ) );
+  scene = new Physics.Scene;
+  scene.setGravity (new THREE.Vector3( 0, -1000, 0 ) );
   const aspect = width / height;
 
   // intersection plane
   const geometry = new THREE.PlaneGeometry(5000, 5000, 2);
-  const material = new THREE.MeshBasicMaterial({ color: 0x248f24, alphaTest: 0, visible: false });
+  const material = new THREE.MeshBasicMaterial({ color: 0x248f24, alphaTest: 0, visible: false});
+
   intersectionPlane = new THREE.Mesh(geometry, material);
+   
+  let linearDamping = 0.8;
+  let angularDamping = 0.8;
+
+  intersectionPlane.rotateX(-Math.PI);
+  intersectionPlane.__dirtyRotation = true;
+
   scene.add(intersectionPlane);
 
   // Lights
 
   var spotLight = new THREE.SpotLight( 0xffffff );
-  spotLight.position.set( table.inner.middle[0], table.inner.middle[1], 1100 );
+  spotLight.position.set( table.inner.middle[0], 1200, table.inner.middle[1] );
 
   spotLight.castShadow = true;
 
@@ -164,7 +172,7 @@ export function createScene(
 
   const linegeometry = new THREE.BufferGeometry();
 
-  const lineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+  const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide });
   const positions = new Float32Array(2 * 3);
   linegeometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
   linegeometry.setDrawRange(0, 2);
@@ -172,8 +180,8 @@ export function createScene(
   line = new THREE.Line(linegeometry, lineMaterial);
 
   updateLine(
-    new THREE.Vector3(whiteBall.position[0], whiteBall.position[1], 1),
-    new THREE.Vector3(0, 0, 1),
+    new THREE.Vector3(whiteBall.position[0], 1, whiteBall.position[1]),
+    new THREE.Vector3(0, 1, 0),
   );
 
   scene.add(line);
@@ -181,8 +189,8 @@ export function createScene(
   // Camera
 
   camera = new THREE.PerspectiveCamera(45, aspect, 1, 10000);
-  camera.position.set(table.inner.middle[0], table.inner.middle[1], 1000);
-  camera.lookAt(new THREE.Vector3(table.inner.middle[0], table.inner.middle[1], 0));
+  camera.position.set(table.inner.middle[0], 1000, table.inner.middle[1]);
+  camera.lookAt(new THREE.Vector3(table.inner.middle[0], 0, table.inner.middle[1]));
 
   scene.add(camera);
 
@@ -203,6 +211,53 @@ export function createScene(
   // Table
 
   loadTable(scene);
+  
+  // collision PlaneMesh
+
+  const tmpCollisionMaterial = Physics.createMaterial(
+    new THREE.MeshNormalMaterial({ color: "red", side: THREE.DoubleSide, visible: true }),
+    0, 1
+  );
+  
+  const left = new THREE.BoxGeometry(1000, 1000, 10);
+  let leftPlane = new Physics.BoxMesh(left, tmpCollisionMaterial, 0);
+
+  leftPlane.translateX(1000);
+  leftPlane.translateY(0);
+  leftPlane.translateZ(200);
+  leftPlane.__dirtyPosition = true;
+
+  leftPlane.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeRotationX( -Math.PI / 2 ));
+  leftPlane.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeRotationY( -Math.PI / 2 ));
+  leftPlane.__dirtyRotation = true;
+
+  scene.add(leftPlane);
+
+  const bottom = new THREE.BoxGeometry(2000, 1000, 1);
+  let bottomtPlane = new Physics.BoxMesh(bottom, tmpCollisionMaterial, 0);
+
+  bottomtPlane.translateX(1000);
+  bottomtPlane.translateY(0);
+  bottomtPlane.translateZ(200);
+  bottomtPlane.__dirtyPosition = true;
+
+  bottomtPlane.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeRotationX( -Math.PI / 2 ));
+  bottomtPlane.__dirtyRotation = true;
+
+  scene.add(bottomtPlane);
+
+  const right = new THREE.BoxGeometry(1000, 1000, 10);
+  let rightPlane = new Physics.BoxMesh(right, tmpCollisionMaterial, 0);
+
+  rightPlane.translateX(1000);
+  rightPlane.translateY(0);
+  rightPlane.translateZ(0);
+  rightPlane.__dirtyPosition = true;
+
+  rightPlane.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeRotationZ( -Math.PI / 2 ));
+  rightPlane.__dirtyRotation = true;
+
+  scene.add(rightPlane);
 
   const textureEquirec = new THREE.TextureLoader().load(env);
   textureEquirec.mapping = THREE.EquirectangularReflectionMapping;
@@ -214,24 +269,30 @@ export function createScene(
   balls.forEach((ball) => {
     const ballGeometry = new THREE.SphereGeometry(settings.ballR, 32, 16);
 
-    const ballMaterial = new THREE.MeshPhysicalMaterial({
-      roughness: 0.12,
-      reflectivity: 0.9,
-      metalness: 0,
-      map: new THREE.TextureLoader().load(textures[ball.number || 0]),
-      envMap: textureEquirec,
-      color: new THREE.Color(0.8, 0.8, 0.6) 
-    });
+    const ballMaterial = Physics.createMaterial(
+       new THREE.MeshPhysicalMaterial({
+        roughness: 0.12,
+        reflectivity: 0.9,
+        metalness: 0,
+        map: new THREE.TextureLoader().load(textures[ball.number || 0]),
+        envMap: textureEquirec,
+        color: new THREE.Color(0.8, 0.8, 0.6) 
+      }),
+      0.9,
+      0.99
+    )
 
-    let sphere = new aap.SphereMesh(ballGeometry, ballMaterial);
-    sphere.position.set(ball.x, ball.y, settings.ballR);
+    let sphere = new Physics.SphereMesh(ballGeometry, ballMaterial, 3);
+    sphere.position.set(ball.x, settings.ballR, ball.y);
     sphere.castShadow = true;
     sphere.receiveShadow = true;
+
+    sphere.setDamping(linearDamping, angularDamping);
     scene.add(sphere);
 
     ball.sphere = sphere;
   });
-  controls.target = new THREE.Vector3(...table.inner.middle, -200)
+  controls.target = new THREE.Vector3(table.inner.middle[0], -200, table.inner.middle[1]);
 
   return { balls, render };
 }
