@@ -61,11 +61,11 @@ Physics.scripts.ammo = 'ammo.js';
 function updateLine(origin, target) {
   const positions = line.geometry.attributes.position.array;
   positions[0] = origin.x;
-  positions[1] = settings.ballR;
-  positions[2] = origin.y;
+  positions[1] = origin.y;
+  positions[2] = settings.ballR;
   positions[3] = target.x;
-  positions[4] = settings.ballR;
-  positions[5] = target.y;
+  positions[4] = target.y;
+  positions[5] = settings.ballR;
   line.geometry.attributes.position.needsUpdate = true;
 }
 
@@ -126,7 +126,6 @@ export function createScene(
   render = new THREE.WebGLRenderer({ canvas, antialias: true });
 
   render.setClearColor(0x000000, 1);
-  // render.setClearColor( 0xffffff, 1 );
   render.setSize(width, height);
   render.shadowMap.enabled = true;
   render.shadowMapSoft = true;
@@ -216,10 +215,10 @@ export function createScene(
 
   const tmpCollisionMaterial = Physics.createMaterial(
     new THREE.MeshNormalMaterial({ color: "red", side: THREE.DoubleSide, visible: true }),
-    0, 1
+    0.4, 0.99
   );
   
-  const left = new THREE.BoxGeometry(1000, 1000, 10);
+  const left = new THREE.BoxGeometry(1000, 1000, 100);
   let leftPlane = new Physics.BoxMesh(left, tmpCollisionMaterial, 0);
 
   leftPlane.translateX(1000);
@@ -233,7 +232,7 @@ export function createScene(
 
   scene.add(leftPlane);
 
-  const bottom = new THREE.BoxGeometry(2000, 1000, 1);
+  const bottom = new THREE.BoxGeometry(2000, 1000, 100);
   let bottomtPlane = new Physics.BoxMesh(bottom, tmpCollisionMaterial, 0);
 
   bottomtPlane.translateX(1000);
@@ -246,7 +245,7 @@ export function createScene(
 
   scene.add(bottomtPlane);
 
-  const right = new THREE.BoxGeometry(1000, 1000, 10);
+  const right = new THREE.BoxGeometry(1000, 1000, 100);
   let rightPlane = new Physics.BoxMesh(right, tmpCollisionMaterial, 0);
 
   rightPlane.translateX(1000);
@@ -283,16 +282,18 @@ export function createScene(
     )
 
     let sphere = new Physics.SphereMesh(ballGeometry, ballMaterial, 3);
-    sphere.position.set(ball.x, settings.ballR, ball.y);
+    sphere.position.set(ball.x, settings.ballR + 100, ball.y);
     sphere.castShadow = true;
     sphere.receiveShadow = true;
+    sphere.setCcdMotionThreshold(100);
+    sphere.setCcdSweptSphereRadius(1);
 
     sphere.setDamping(linearDamping, angularDamping);
     scene.add(sphere);
 
     ball.sphere = sphere;
   });
-  controls.target = new THREE.Vector3(table.inner.middle[0], -200, table.inner.middle[1]);
+  controls.target = new THREE.Vector3(table.inner.middle[0], table.inner.middle[1], -200);
 
   return { balls, render };
 }
