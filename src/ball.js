@@ -17,6 +17,7 @@ export function createBall(table, color, number, col = 0, row = 0, half = false,
     get y() {
       return this.position[1];
     },
+    z: 25/2, // TODO: from settings
     color,
     half,
     number,

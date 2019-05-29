@@ -15,6 +15,8 @@ const settings = {
   minPower: 0.05,
 };
 
+const pocketRadius = settings.ballR + 10;
+
 let canvas = null;
 
 const table = {};
@@ -23,7 +25,7 @@ let balls = [];
 
 function setTable() {
   const outer = {
-    x: 0, y: 100, width: 1140, height: 640,
+    x: 0, y: 100, width: 1154, height: 640,
   };
   const inner = {
     x: outer.x + 70,
@@ -39,6 +41,14 @@ function setTable() {
   table.drawOuter = [outer.x, outer.y, outer.width, outer.height];
   table.inner = inner;
   table.drawInner = [inner.x, inner.y, inner.width, inner.height];
+
+  // Seen from the starting player position
+  table.pocketRightMiddle = vec2.fromValues(table.inner.middle[0], table.inner.y);
+  table.pocketLeftMiddle = vec2.fromValues(table.inner.middle[0], table.inner.y2);
+  table.pocketLeftFront = vec2.fromValues(table.inner.x, table.inner.y);
+  table.pocketRightFront = vec2.fromValues(table.inner.x, table.inner.y2);
+  table.pocketLeftBack = vec2.fromValues(table.inner.x2, table.inner.y);
+  table.pocketRightBack = vec2.fromValues(table.inner.x2, table.inner.y2);
 }
 
 function setupCanvas() {
@@ -73,7 +83,7 @@ function handleClick() {
     const direction = vec2.sub(vec2.create(), ball, click);
     vec2.normalize(direction, direction);
 
-    whiteBall.power = settings.power;
+    whiteBall.power = vec2.distance(ball, click) / 4;
     whiteBall.direction = direction;
   }
 }
@@ -98,6 +108,14 @@ function updateWallBounce(ball, wall, axis, addBallR, xAxis = (axis === 'x' || a
   return true;
 }
 
+function ballInPocket(ball, newPos) {
+  ball.power = ball.power * 0.1;
+  ball.position = newPos;
+  ball.z = -10;
+  balls = balls.filter( el => el.number !== ball.number );
+  return false;
+}
+
 function ballVSWall(ball, wall) {
   const newPos = vec2.scaleAndAdd(
     vec2.create(),
@@ -105,6 +123,30 @@ function ballVSWall(ball, wall) {
     ball.direction,
     ball.getPower(),
   );
+
+  if (vec2.distance(newPos, table.pocketLeftMiddle) < pocketRadius){
+    return ballInPocket(ball, newPos);
+  }
+
+  if (vec2.distance(newPos, table.pocketRightMiddle) < pocketRadius){
+    return ballInPocket(ball, newPos);
+  }
+
+  if (vec2.distance(newPos, table.pocketLeftFront) < pocketRadius){
+    return ballInPocket(ball, newPos);
+  }
+
+  if (vec2.distance(newPos, table.pocketRightFront) < pocketRadius){
+    return ballInPocket(ball, newPos);
+  }
+
+  if (vec2.distance(newPos, table.pocketLeftBack) < pocketRadius){
+    return ballInPocket(ball, newPos);
+  }
+
+  if (vec2.distance(newPos, table.pocketRightBack) < pocketRadius){
+    return ballInPocket(ball, newPos);
+  }
 
   if (newPos[0] - settings.ballR < wall.x) {
     return updateWallBounce(ball, wall, 'x', settings.ballR);
@@ -235,7 +277,11 @@ function ballVSball(ballA, ballB) {
   return true;
 }
 
-function checkCollisions(ball) {
+function checkCollisions(ball, depth) {
+  if (depth === 0) {
+    return null;
+  }
+
   const oldPos = ball.position;
   const dir = ball.direction;
   const power = ball.getPower();
@@ -248,13 +294,13 @@ function checkCollisions(ball) {
     // }
     if (otherBall !== ball) {
       if (ballVSball(ball, otherBall)) {
-        return checkCollisions(ball);
+        return checkCollisions(ball, depth -= 1);
       }
     }
   }
 
   if (ballVSWall(ball, table.inner)) {
-    return checkCollisions(ball);
+    return checkCollisions(ball, depth -= 1);
   }
 
   vec2.scaleAndAdd(ballPos, oldPos, dir, power);
@@ -266,7 +312,7 @@ function checkCollisions(ball) {
 
 function updateBall(ball) {
   if (ball.power) {
-    checkCollisions(ball);
+    checkCollisions(ball, 32);
 
     ball.checked = true;
 
@@ -281,7 +327,7 @@ function updateBall(ball) {
         ball.power = null;
       }
     }
-    ball.sphere.position.set(ball.x, ball.y, settings.ballR);
+    ball.sphere.position.set(ball.x, ball.y, ball.z);
     rotateBall(ball);
   }
 }

@@ -44,6 +44,7 @@ let camera = null;
 let controls = null;
 let canvas = null;
 let line = null;
+let testLine = null;
 let whiteBall = null;
 let intersectionPlane = null;
 const settings = {};
@@ -184,6 +185,37 @@ export function createScene(
 
   scene.add(line);
 
+  // test geometry
+
+  // const testLineMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+  // const linegeometryTest = new THREE.BufferGeometry();
+  // const positionsTest = new Float32Array(2 * 3);
+
+  // positionsTest[0] = table.pocketLeftMiddle[0];
+  // positionsTest[1] = table.pocketLeftMiddle[1];
+  // positionsTest[2] = -100;
+  // positionsTest[3] = table.pocketLeftMiddle[0];
+  // positionsTest[4] = table.pocketLeftMiddle[1];
+  // positionsTest[5] = 100;
+
+  // linegeometryTest.addAttribute('position', new THREE.BufferAttribute(positionsTest, 3));
+  // linegeometryTest.setDrawRange(0, 2);
+
+  // testLine = new THREE.Line(linegeometryTest, testLineMaterial);
+
+  // testLine.geometry.attributes.position.needsUpdate = true;
+
+  // scene.add(testLine);
+
+  // var geometry2 = new THREE.BoxGeometry( table.inner.width, table.inner.height, 1 );
+  // var material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+  // var cube2 = new THREE.Mesh( geometry2, material2 );
+  // cube2.position.set(table.inner.middle[0], table.inner.middle[1], 0);
+  // scene.add( cube2 );
+
+  // end test geometry
+
+
   // Camera
 
   camera = new THREE.PerspectiveCamera(45, aspect, 1, 10000);
@@ -231,7 +263,7 @@ export function createScene(
     });
 
     const sphere = new THREE.Mesh(ballGeometry, ballMaterial);
-    sphere.position.set(ball.x, ball.y, settings.ballR);
+    sphere.position.set(ball.x, ball.y, ball.z);
     sphere.castShadow = true;
     sphere.receiveShadow = true;
     scene.add(sphere);

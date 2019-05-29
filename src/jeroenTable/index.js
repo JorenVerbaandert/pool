@@ -19,9 +19,9 @@ export default function loadTable(scene) {
       }
     });
 
+    object.translateX(577);
+    object.translateY(420);
     object.translateZ(-310);
-    object.translateX(590);
-    object.translateY(425);
 
     object.rotateX(Math.PI / 2);
     object.rotateY(Math.PI / 2);
